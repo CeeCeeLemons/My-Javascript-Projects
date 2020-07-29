@@ -1,200 +1,124 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>A*</title>
+    <title>Project Hub</title>
     <script>
-        function Range(length) {
-            return Array.from({ length }, (_, i) => i);
+        let links = [];
+        function addLink(page, name, desc) {
+            links.push({ page: page, name: name, desc: desc });
         }
-
-        function Range2(start, end) {
-            const length = end - start;
-            return Array.from({ length }, (_, i) => i + start);
-        }
-
-        const Space = function (row, col) {
-            this.row = row;
-            this.col = col;
-            this.neighbors = [];
-            this.g = -1;
-            this.h = -1;
-            this.pointingTo = null;
-            this.checked = false;
-        }
-
-        let aVal = 1;
-        let bVal = 1;
-
-        let randVal = 0.4;
-
-        let rows = 200;
-        let cols = 200;
-        let grid = [];
-        let stopped = false;
-
-        let start = {
-            r: Math.trunc(Math.random() * rows),
-            c: Math.trunc(Math.random() * cols)
-        };
-
-        let end = {
-            r: Math.trunc(Math.random() * rows),
-            c: Math.trunc(Math.random() * cols)
-        };
-
-        for (let r of Range(rows)) {
-            grid.push([]);
-            for (let c of Range(cols)) {
-                grid[r].push(new Space(r, c));
-                if ((r !== start.r || c !== start.c) && (r !== end.r || c !== end.c)) {
-                    if (Math.random() < randVal) {
-                        grid[r][c] = null;
-                    }
-                }
-            }
-        }
-
-        for (let r of Range(rows - 1)) {
-            for (let c of Range(cols)) {
-                if (grid[r][c] !== null && grid[r + 1][c] !== null) {
-                    grid[r][c].neighbors.push(grid[r + 1][c]);
-                    grid[r + 1][c].neighbors.push(grid[r][c]);
-                }
-            }
-        }
-
-        for (let r of Range(rows)) {
-            for (let c of Range(cols - 1)) {
-                if (grid[r][c] !== null && grid[r][c + 1] !== null) {
-                    grid[r][c].neighbors.push(grid[r][c + 1]);
-                    grid[r][c + 1].neighbors.push(grid[r][c]);
-                }
-            }
-        }
-
-        grid[start.r][start.c].g = 0;
-        grid[start.r][start.c].h = bVal * calcDist(grid[start.r][start.c], grid[end.r][end.c]);
-
-        let stack = [
-            grid[start.r][start.c]
-        ];
-
-        function sortStack() {
-            for (let i of Range(stack.length - 1)) {
-                for (let j of Range(stack.length - i - 1)) {
-                    if (stack[j + 1].h < stack[j].h) {
-                        let temp = stack[j];
-                        stack[j] = stack[j + 1];
-                        stack[j + 1] = temp;
-                    }
-                }
-            }
-        }
-
-        function calcDist(a, b) {
-            return Math.abs(a.row - b.row) + Math.abs(a.col - b.col);
-        }
-
-        function noSols() {
-            for (let r of Range(rows)) {
-                for (let c of Range(cols)) {
-                    if (grid[r][c] !== null && grid[r][c].h > -1) {
-                        color(r, c, "#f00");
-                    }
-                }
-            }
-        }
-
-        function calcNeighbors(space) {
-            if (space === undefined) {
-                noSols();
-                stopped = true;
-            } else {
-                for (let s of space.neighbors) {
-                    if (s.checked == false) {
-                        let g = space.g + aVal * calcDist(space, s);
-                        let h = g + bVal * calcDist(s, grid[end.r][end.c]);
-                        if (s.h === -1) {
-                            s.g = g;
-                            s.h = h;
-                            s.pointingTo = space;
-                            stack.push(s);
-                            color(s.row, s.col, "#0ff");
-                        } else if (h < s.h) {
-                            s.g = g;
-                            s.h = h;
-                            s.pointingTo = space;
-                        }
-                        if (s.row === end.r && s.col === end.c) {
-                            trace(s);
-                            stopped = true;
-                        }
-                    }
-                }
-                space.checked = true;
-                color(space.row, space.col, "#00f");
-            }
-        }
-
-        function trace(space) {
-            if (space !== null) {
-                color(space.row, space.col, "#0f0");
-                trace(space.pointingTo);
-            }
-        }
-
-        function color(r, c, color) {
-            let canvas = document.getElementById("canvas");
-            let ctx = canvas.getContext("2d");
-            ctx.fillStyle = color;
-            let x = c * canvas.width / cols;
-            let y = r * canvas.height / rows;
-            let width = canvas.width / cols;
-            let height = canvas.height / rows;
-            ctx.fillRect(x, y, width, height);
-        }
-
-        let prevTime = 0;
-        let fps = 0;
-
-        function getFPS() { return fps; }
-
-        function loop(t) {
-            fps = 1000 / (t - prevTime);
-            prevTime = t;
-            calcNeighbors(stack[0]);
-            color(start.r, start.c, "#70f");
-            color(end.r, end.c, "#f70");
-            stack.splice(0, 1);
-            sortStack();
-            if (!stopped) {
-                window.requestAnimationFrame(loop);
-            }
-        }
-
-        function loadCanvas() {
-            for (let r of Range(rows)) {
-                for (let c of Range(cols)) {
-                    if (grid[r][c] === null) {
-                        color(r, c, "#000");
-                    }
-                }
-            }
-        }
-
+        addLink(
+            'AStar',
+            'A *',
+            'My implementation of the A * pathfinding algorithm in a randomized field of pixels'
+        );
+        addLink(
+            'Bodies',
+            'Bodies',
+            'A rough physics simulation of gravity on bodies of various masses'
+        );
+        addLink(
+            'Brot',
+            'Brot',
+            'Generates randomized Julia Set fractals in 3840x2160px resolution'
+        );
+        addLink(
+            'Checkers',
+            'Unfinished, Buggy Checkers',
+            'My unfinished checkers minimax algorithm, has some bugs so play at your own risk ;)'
+        );
+        addLink(
+            'ConnectFour',
+            'Connect Four',
+            'Same deal as checkers but it actually works'
+        );
+        addLink(
+            'Fibonacci',
+            'Fibonacci Spiral Mapping Test',
+            'A fibonacci spiral mapped to a sphere, with random radius values applied to each point to simulate uniformly distanced rough terrain'
+        );
+        addLink(
+            'GameMaker',
+            'Game Maker',
+            'A sprite editor, world editor and simple physics engine used to design and share simple platformer-styled games, built for my little brother during Spring/Summer 2020 quarantine'
+        );
+        addLink(
+            'LinAlg',
+            'Neural Project',
+            'A neural network implementation in Javascript using my own homemade matrix class that attempts to learn a binary adder circuit. Overfits to hell and is not optimized in any capacity.'
+        );
+        addLink(
+            'NoughtsAndCrosses',
+            'Tic Tac Toe',
+            'A Tic Tac Toe minimax that always beats the player, with score tracking and togglable options to customize gameplay'
+        );
+        addLink(
+            'RayMarching',
+            '2D Ray Marching Test',
+            'My ray marching visualization implementation'
+        );
+        addLink(
+            'TimesTables',
+            'Times Tables',
+            'A visualization of various times tables fit to a modulo circle'
+        );
+        addLink(
+            'TriplePendulum',
+            'Triple Pendulum',
+            'My homemade simulation of a triple pendulum, which is like, 1 1/2 times better than a double pendulum'
+        );
+        addLink(
+            'OldSite',
+            'High School Site',
+            'The old design of this website for its use as a high school project hub, 2017-2018'
+        );
         function load() {
-            loadCanvas();
-            loop();
+            let linkList = document.getElementById('linkList');
+            for (let link of links) {
+                let li = document.createElement('li');
+                linkList.appendChild(li);
+                let a = document.createElement('a');
+                li.appendChild(a);
+                a.href = link.page + '/';
+                a.innerText = link.name;
+                a.onmouseover = () => { hover(link.desc) };
+                a.onmouseout = () => { hover('') };
+            }
         }
-
+        function hover(desc) {
+            document.getElementById('blurb').innerText = desc;
+        }
     </script>
     <style type="text/css">
-        canvas {
-            outline: 1px solid black;
+        * {
+            font-family: Courier New, Courier, monospace;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            padding: 1em;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        a {
+            color: #000;
+            text-decoration: none;
+        }
+
+            a:hover {
+                text-decoration: underline;
+            }
+        #blurb {
+            margin-top: 1em;
         }
     </style>
 </head>
 <body onload="load()">
-    <canvas id="canvas" width="1600" height="1600"></canvas>
+    <ul id="linkList"></ul>
+    <p id="blurb"></p>
 </body>
 </html>
