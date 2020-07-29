@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Ray Marching</title>
+    <script>
+        function Point(x, y) {
+            this.x = x;
+            this.y = y;
+            this.__proto__.plus = function (p) {
+                return new Point(this.x + p.x, this.y + p.y);
+            }
+            this.__proto__.minus = function (p) {
+                return new Point(this.x - p.x, this.y - p.y);
+            }
+            this.__proto__.mul = function (n) {
+                return new Point(this.x * n, this.y * n);
+            }
+            this.__proto__.dot = function (p) {
+                return this.x * p.x + this.y * p.y;
+            }
+            this.__proto__.cross = function (p) {
+                return this.x * p.y - this.y * p.x;
+            }
+            this.__proto__.len = function () {
+                return Math.sqrt(this.dot(this));
+            }
+            this.__proto__.dist = function (obj) {
+                if (typeof obj === 'object') {
+                    if (obj.constructor.name === 'Point') {
+                        return this.minus(obj).len();
+                    } else if (obj.constructor.name === 'Circle') {
+                        return Math.abs(this.minus(obj).len() - obj.r);
+                    } else if (obj.constructor.name === 'Rect') {
+                        let inx = false;
+                        let iny = false;
+
+                        let x = this.x;
+                        if (x < obj.x) x = obj.x;
+                        else if (obj.x + obj.w < x) x = obj.x + obj.w;
+                        else inx = true;
+
+                        let y = this.y;
+                        if (y < obj.y) y = obj.y;
+                        else if (obj.y + obj.h < y) y = obj.y + obj.h;
+                        else iny = true;
+
+                        if (inx && iny) {
+                            let distX = Math.min(Math.abs(this.x - obj.x), Math.abs(this.x - obj.x - obj.w));
+                            let distY = Math.min(Math.abs(this.y - obj.y), Math.abs(this.y - obj.y - obj.h));
+                            if (distX < distY) {
+                                if (Math.abs(this.x - obj.x) < Math.abs(this.x - obj.x - obj.w)) {
+                                    return this.minus(new Point(obj.x, this.y)).len();
+                                } else {
+                                    return this.minus(new Point(obj.x + obj.w, this.y)).len();
+                                }
+                            } else {
+                                if (Math.abs(this.y - obj.y) < Math.abs(this.y - obj.y - obj.h)) {
+                                    return this.minus(new Point(this.x, obj.y)).len();
+                                } else {
+                                    return this.minus(new Point(this.x, obj.y + obj.h)).len();
+                                }
+                            }
+                        } else {
+                            return this.minus(new Point(x, y)).len();
+                        }
+                    }
+                }
+            }
+        }
+        function Circle(x, y, r) {
+            this.x = x;
+            this.y = y;
+            this.r = r;
+        }
+        function Rect(x, y, w, h) {
+            this.x = x;
+            this.y = y;
+            this.w = w;
+            this.h = h;
+        }
+
+        let actors = [];
+        let eye = new Point(400, 400);
+
+        function loadCanvas() {
+            let canvas = document.createElement('canvas');
+            canvas.id = 'canvas';
+            canvas.width = 800;
+            canvas.height = 800;
+            document.body.appendChild(canvas);
+
+            let overlay = document.createElement('canvas');
+            overlay.id = 'overlay';
+            overlay.width = 800;
+            overlay.height = 800;
+            document.body.appendChild(overlay);
+        }
+
+        function distFromWorld(point) {
+            let minDist = undefined;
+            for (let actor of actors) {
+                let dist = point.dist(actor);
+                if (minDist === undefined || dist < minDist) {
+                    minDist = dist;
+                }
+            }
+            return minDist;
+        }
+
+        function drawLine(p1, p2, ctx) {
+            ctx.beginPath();
+            ctx.moveTo(p1.x, p1.y);
+            ctx.lineTo(p2.x, p2.y);
+            ctx.stroke();
+        }
+
+        function drawCircle(circle, ctx) {
+            ctx.beginPath();
+            ctx.arc(circle.x, circle.y, circle.r, 0, 2 * Math.PI);
+            ctx.stroke();
+        }
+
+        function fillCircle(circle, ctx) {
+            ctx.beginPath();
+            ctx.arc(circle.x, circle.y, circle.r, 0, 2 * Math.PI);
+            ctx.fill();
+        }
+
+        function drawRect(rect, ctx) {
+            ctx.beginPath();
+            ctx.moveTo(rect.x, rect.y);
+            ctx.lineTo(rect.x, rect.y + rect.h);
+            ctx.lineTo(rect.x + rect.w, rect.y + rect.h);
+            ctx.lineTo(rect.x + rect.w, rect.y);
+            ctx.lineTo(rect.x, rect.y);
+            ctx.stroke();
+        }
+
+        function drawAngle(angle) {
+            let ctx = document.getElementById('canvas').getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 800, 800);
+            ctx.strokeStyle = '#555';
+            for (let actor of actors) {
+                if (actor.constructor.name === 'Circle') {
+                    drawCircle(actor, ctx);
+                } else if (actor.constructor.name === 'Rect') {
+                    drawRect(actor, ctx);
+                }
+            }
+
+            let minDist = .1;
+            ctx.strokeStyle = '#0ff';
+            ctx.fillStyle = '#00ffff33';
+            let dir = new Point(Math.cos(angle), Math.sin(angle));
+            let curPoint = eye;
+            let dist = undefined;
+            do {
+                dist = distFromWorld(curPoint);
+                let newPoint = curPoint.plus(dir.mul(dist));
+                drawLine(curPoint, newPoint, ctx);
+                drawCircle(new Circle(curPoint.x, curPoint.y, dist), ctx);
+                fillCircle(new Circle(curPoint.x, curPoint.y, dist), ctx);
+                curPoint = newPoint;
+            } while (dist > minDist);
+            let ctx2 = document.getElementById('overlay').getContext('2d');
+            ctx2.fillStyle = '#f00';
+            ctx2.strokeStyle = '#ffffff0f';
+            fillCircle(new Circle(curPoint.x, curPoint.y, 1), ctx2);
+            drawLine(eye, curPoint, ctx2);
+        }
+
+        let angle = 0;
+
+        function loop() {
+            drawAngle(angle);
+            angle += Math.PI / 6144;
+            if(angle < 2 * Math.PI) window.requestAnimationFrame(loop);
+        }
+
+        function load() {
+            loadCanvas();
+            actors.push(new Rect(0, 0, 800, 800));
+            for (let i = 0; i < 20; i++) {
+                if (Math.random() < 0.5) {
+                    actors.push(new Circle(Math.random() * 800, Math.random() * 800, Math.random() * 100));
+                } else {
+                    actors.push(new Rect(Math.random() * 800, Math.random() * 800, Math.random() * 100, Math.random() * 100));
+                }
+            }
+            //draw();
+            loop();
+        }
+    </script>
+    <style type="text/css">
+        canvas {
+            outline: 1px solid black;
+            position: absolute;
+        }
+        #canvas {
+            z-index: 1;
+        }
+        #overlay {
+            z-index: 2;
+        }
+    </style>
+</head>
+<body onload="load()"></body>
+</html>
