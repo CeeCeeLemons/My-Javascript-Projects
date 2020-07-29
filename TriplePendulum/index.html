@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Triple Pendulum</title>
+    <script>
+        let g = 1;
+        function Pendulum(m1 = 1, m2 = 2, m3 = 3, l1 = 100, l2 = 150, l3 = 200) {
+            this.m1 = m1;
+            this.m2 = m2;
+            this.m3 = m3;
+            this.l1 = l1;
+            this.l2 = l2;
+            this.l3 = l3;
+            this.t1 = Math.random() * Math.PI - Math.PI / 2;
+            this.t2 = Math.random() * Math.PI - Math.PI / 2;
+            this.t3 = Math.random() * Math.PI - Math.PI / 2;
+            this.w1 = 0;
+            this.w2 = 0;
+            this.w3 = 0;
+            this.__proto__.a = function (t1, w1, t2, w2, t3, w3) {
+                let A = this.l1 * Math.cos(t3 - t1);
+                let B = this.l2 * Math.cos(t3 - t2);
+                let C = this.l3;
+                let D = - w1 * w1 * this.l1 * Math.sin(t3 - t1) + 
+                    - w2 * w2 * this.l2 * Math.sin(t3 - t2) +
+                    - g * Math.sin(t3);
+        
+                let E = (this.m2 + this.m3) * this.l1 * Math.cos(t2 - t1);
+                let F = (this.m2 + this.m3) * this.l2;
+                let G = this.m3 * this.l3 * Math.cos(t2 - t3);
+                let H = - w1 * w1 * (this.m2 + this.m3) * this.l1 * Math.sin(t2 - t1) + 
+                    - w3 * w3 * this.m3 * this.l3 * Math.sin(t2 - t3) +
+                    - g * (this.m2 + this.m3) * Math.sin(t2);
+        
+                let I = (this.m1 + this.m2 + this.m3) * this.l1;
+                let J = (this.m2 + this.m3) * this.l2 * Math.cos(t1 - t2);
+                let K = this.m3 * this.l3 * Math.cos(t1 - t3);
+                let L = - w2 * w2 * (this.m2 + this.m3) * this.l2 * Math.sin(t1 - t2) + 
+                    - w3 * w3 * this.m3 * this.l3 * Math.sin(t1 - t3) +
+                    - g * (this.m1 + this.m2 + this.m3) * Math.sin(t1);
+
+                let a1 = (D*F*K + C*H*J + B*G*L - D*G*J - B*H*K - C*F*L) / (A*F*K + B*G*I + C*E*J - C*F*I - A*G*J - B*E*K);
+                let a2 = (D*G*I + A*H*K + C*E*L - D*E*K - C*H*I - A*G*L) / (A*F*K + B*G*I + C*E*J - C*F*I - A*G*J - B*E*K);
+                let a3 = (D*E*J + B*H*I + A*F*L - D*F*I - A*H*J - B*E*L) / (A*F*K + B*G*I + C*E*J - C*F*I - A*G*J - B*E*K);
+
+                return [a1, a2, a3];
+            }
+            this.__proto__.step = function (h = 1) {
+                //Runge-Kutta
+
+                /*let a = this.a(this.t1, this.w1, this.t2, this.w2, this.t3, this.w3);
+                let b1 = this.a(this.t1, this.w1 + h * a[0] / 2, this.t2, this.w2, this.t3, this.w3)[0];
+                let b2 = this.a(this.t1, this.w1, this.t2, this.w2 + h * a[1] / 2, this.t3, this.w3)[1];
+                let b3 = this.a(this.t1, this.w1, this.t2, this.w2, this.t3, this.w3 + h * a[2] / 2)[2];
+                let c1 = this.a(this.t1, this.w1 + h * b1 / 2, this.t2, this.w2, this.t3, this.w3)[0];
+                let c2 = this.a(this.t1, this.w1, this.t2, this.w2 + h * b2 / 2, this.t3, this.w3)[1];
+                let c3 = this.a(this.t1, this.w1, this.t2, this.w2, this.t3, this.w3 + h * b3 / 2)[2];
+                let d1 = this.a(this.t1, this.w1 + h * c1, this.t2, this.w2, this.t3, this.w3)[0];
+                let d2 = this.a(this.t1, this.w1, this.t2, this.w2 + h * c2, this.t3, this.w3)[1];
+                let d3 = this.a(this.t1, this.w1, this.t2, this.w2, this.t3, this.w3 + h * c3)[2];
+
+                this.w1 += h * (a[0] + 2 * b1 + 2 * c1 + d1) / 6;
+                this.w2 += h * (a[0] + 2 * b2 + 2 * c2 + d2) / 6;
+                this.w3 += h * (a[0] + 2 * b3 + 2 * c3 + d3) / 6;
+
+                this.t1 += h * this.w1;
+                this.t2 += h * this.w2;
+                this.t3 += h * this.w3;*/
+
+                // Euler
+
+                let a = this.a(this.t1, this.w1, this.t2, this.w2, this.t3, this.w3);
+
+                this.w1 += h * a[0];
+                this.w2 += h * a[1];
+                this.w3 += h * a[2];
+
+                this.t1 += h * this.w1;
+                this.t2 += h * this.w2;
+                this.t3 += h * this.w3;
+            }
+        }
+        let pendulum = new Pendulum();
+        let time = 0;
+        function loop(t) {
+            time = t;
+            for (let i = 0; i < 1000; i++) {
+                pendulum.step(.0005);
+            }
+            draw();
+            window.requestAnimationFrame(loop);
+        }
+        function draw() {
+            let ctx = document.getElementById('canvas').getContext('2d');
+            let underlay = document.getElementById('underlay').getContext('2d');
+            ctx.drawImage(underlay.canvas, 0, 0);
+
+            let x0 = ctx.canvas.width / 2;
+            let y0 = ctx.canvas.height / 4;
+            let x1 = x0 + pendulum.l1 * Math.sin(pendulum.t1);
+            let y1 = y0 + pendulum.l1 * Math.cos(pendulum.t1);
+            let x2 = x1 + pendulum.l2 * Math.sin(pendulum.t2);
+            let y2 = y1 + pendulum.l2 * Math.cos(pendulum.t2);
+            let x3 = x2 + pendulum.l3 * Math.sin(pendulum.t3);
+            let y3 = y2 + pendulum.l3 * Math.cos(pendulum.t3);
+
+            ctx.drawStyle = '#000';
+            ctx.lineWidth = 10;
+            ctx.beginPath();
+            ctx.moveTo(x0, y0);
+            ctx.lineTo(x1, y1);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x1, y1);
+            ctx.lineTo(x2, y2);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.moveTo(x2, y2);
+            ctx.lineTo(x3, y3);
+            ctx.stroke();
+
+            ctx.fillStyle = '#f00';
+            ctx.beginPath();
+            ctx.arc(x1, y1, 10 * pendulum.m1 ** (1 / 3), 0, 2 * Math.PI);
+            ctx.fill();
+            underlay.fillStyle = '#fcc';
+            underlay.beginPath();
+            underlay.arc(x1, y1, 2, 0, 2 * Math.PI);
+            underlay.fill();
+            ctx.fillStyle = '#0f0';
+            ctx.beginPath();
+            ctx.arc(x2, y2, 10 * pendulum.m2 ** (1 / 3), 0, 2 * Math.PI);
+            ctx.fill();
+            underlay.fillStyle = '#cfc';
+            underlay.beginPath();
+            underlay.arc(x2, y2, 2, 0, 2 * Math.PI);
+            underlay.fill();
+            ctx.fillStyle = '#00f';
+            ctx.beginPath();
+            ctx.arc(x3, y3, 10 * pendulum.m3 ** (1 / 3), 0, 2 * Math.PI);
+            ctx.fill();
+            underlay.fillStyle = '#ccf';
+            underlay.beginPath();
+            underlay.arc(x3, y3, 2, 0, 2 * Math.PI);
+            underlay.fill();
+        }
+        function makeSlider(name, str, min, max) {
+            let div = document.createElement('div')
+            let label = document.createElement('label');
+            div.appendChild(label);
+            label.innerText = str + ':';
+            let slider = document.createElement('input');
+            div.appendChild(slider);
+            slider.type = 'number';
+            slider.min = min;
+            slider.max = max;
+            slider.value = pendulum[name];
+            slider.oninput = () => {
+                pendulum[name] = slider.value;
+                if (slider.value < min) pendulum[name] = min;
+                if (slider.value > max) pendulum[name] = max;
+            }
+            return div;
+        }
+        function load() {
+            let canvas = document.createElement('canvas');
+            canvas.id = 'canvas';
+            canvas.width = 800;
+            canvas.height = 800;
+            document.body.appendChild(canvas);
+            let underlay = document.createElement('canvas');
+            underlay.id = 'underlay';
+            underlay.width = 800;
+            underlay.height = 800;
+            document.body.appendChild(underlay);
+            underlay.classList.add('hidden');
+            let ctx = underlay.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+            let p = document.createElement('p')
+            p.innerText = "I began working on this project taking intro mechanical physics, and finished it after taking intro scientific computing. This sucked to make from start to finish, but I'm glad I made it regardless.";
+            document.body.appendChild(p);
+            document.body.appendChild(makeSlider('m1', 'Mass 1', 1, 10));
+            document.body.appendChild(makeSlider('m2', 'Mass 2', 1, 10));
+            document.body.appendChild(makeSlider('m3', 'Mass 3', 1, 10));
+            document.body.appendChild(makeSlider('l1', 'Length 1', 20, 200));
+            document.body.appendChild(makeSlider('l2', 'Length 2', 20, 200));
+            document.body.appendChild(makeSlider('l3', 'Length 3', 20, 200));
+            loop();
+        }
+    </script>
+    <style type="text/css">
+        * {
+            font-family: 'Courier New';
+            font-size: 24px;
+        }
+        .hidden {
+            display: none;
+        }
+        canvas {
+            outline: 1px solid black;
+        }
+    </style>
+</head>
+<body onload="load()"></body>
+</html>
