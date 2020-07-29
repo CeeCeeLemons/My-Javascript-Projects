@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Project Hub</title>
+    <script>
+        let links = [];
+        function addLink(page, name, desc) {
+            links.push({ page: page, name: name, desc: desc });
+        }
+        addLink(
+            'AStar',
+            'A *',
+            'My implementation of the A * pathfinding algorithm in a randomized field of pixels'
+        );
+        addLink(
+            'Bodies',
+            'Bodies',
+            'A rough physics simulation of gravity on bodies of various masses'
+        );
+        addLink(
+            'Brot',
+            'Brot',
+            'Generates randomized Julia Set fractals in 3840x2160px resolution'
+        );
+        addLink(
+            'Checkers',
+            'Unfinished, Buggy Checkers',
+            'My unfinished checkers minimax algorithm, has some bugs so play at your own risk ;)'
+        );
+        addLink(
+            'ConnectFour',
+            'Connect Four',
+            'Same deal as checkers but it actually works'
+        );
+        addLink(
+            'Fibonacci',
+            'Fibonacci Spiral Mapping Test',
+            'A fibonacci spiral mapped to a sphere, with random radius values applied to each point to simulate uniformly distanced rough terrain'
+        );
+        addLink(
+            'GameMaker',
+            'Game Maker',
+            'A sprite editor, world editor and simple physics engine used to design and share simple platformer-styled games, built for my little brother during Spring/Summer 2020 quarantine'
+        );
+        addLink(
+            'LinAlg',
+            'Neural Project',
+            'A neural network implementation in Javascript using my own homemade matrix class that attempts to learn a binary adder circuit. Overfits to hell and is not optimized in any capacity.'
+        );
+        addLink(
+            'NoughtsAndCrosses',
+            'Tic Tac Toe',
+            'A Tic Tac Toe minimax that always beats the player, with score tracking and togglable options to customize gameplay'
+        );
+        addLink(
+            'RayMarching',
+            '2D Ray Marching Test',
+            'My ray marching visualization implementation'
+        );
+        addLink(
+            'TimesTables',
+            'Times Tables',
+            'A visualization of various times tables fit to a modulo circle'
+        );
+        addLink(
+            'TriplePendulum',
+            'Triple Pendulum',
+            'My homemade simulation of a triple pendulum, which is like, 1 1/2 times better than a double pendulum'
+        );
+        addLink(
+            'OldSite',
+            'High School Site',
+            'The old design of this website for its use as a high school project hub, 2017-2018'
+        );
+        function load() {
+            let linkList = document.getElementById('linkList');
+            for (let link of links) {
+                let li = document.createElement('li');
+                linkList.appendChild(li);
+                let a = document.createElement('a');
+                li.appendChild(a);
+                a.href = link.page + '/';
+                a.innerText = link.name;
+                a.onmouseover = () => { hover(link.desc) };
+                a.onmouseout = () => { hover('') };
+            }
+        }
+        function hover(desc) {
+            document.getElementById('blurb').innerText = desc;
+        }
+    </script>
+    <style type="text/css">
+        * {
+            font-family: Courier New, Courier, monospace;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            padding: 1em;
+        }
+
+        ul {
+            list-style: none;
+        }
+
+        a {
+            color: #000;
+            text-decoration: none;
+        }
+
+            a:hover {
+                text-decoration: underline;
+            }
+        #blurb {
+            margin-top: 1em;
+        }
+    </style>
+</head>
+<body onload="load()">
+    <ul id="linkList"></ul>
+    <p id="blurb"></p>
+</body>
+</html>
