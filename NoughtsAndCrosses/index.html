@@ -1,0 +1,694 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>You Suck at Tic Tac Toe</title>
+    <script>
+
+        let playerFirst = true;
+        let classicMode = true;
+
+        function Board() {
+            this.grid = [
+                ' ',
+                ' ',
+                ' ',
+                ' ',
+                ' ',
+                ' ',
+                ' ',
+                ' ',
+                ' '
+            ];
+            this.turn = 0;
+
+            this.__proto__.miniMax = function () {
+                if (this.isEmpty()) {
+                    if (classicMode) return [0, 1, 2, 3, 4, 5, 6, 7, 8];
+                    else return [4];
+                }
+
+                let children = this.getNextBoards();
+                if (children.length === 0) return -1;
+
+                let bestVal = 1;
+                if (this.turn === 0) {
+                    bestVal = -1;
+                }
+                let bestChildren = [];
+                for (let i in children) {
+                    let child = children[i]
+                    let val = child.getCurrentVal();
+
+                    if (this.turn === 1) {
+                        if (val < bestVal) {
+                            bestVal = val;
+                            bestChildren = [i];
+                        }
+                        else if (val === bestVal) {
+                            bestChildren.push(i);
+                        }
+                    } else if (this.turn === 0) {
+                        if (val > bestVal) {
+                            bestVal = val;
+                            bestChildren = [i];
+                        } else if (val === bestVal) {
+                            bestChildren.push(i);
+                        }
+                    }
+                }
+                return bestChildren;
+            }
+
+            this.__proto__.getCurrentVal = function () {
+                let winVal = this.calculateWinVal();
+                if (winVal !== 0) return winVal;
+                let children = this.getNextBoards();
+                if (children.length === 0) return winVal;
+
+                let valToBeat = 1;
+                if (this.turn === 0) {
+                    valToBeat = -1;
+                }
+                for (child of children) {
+                    let val = child.getCurrentVal();
+                    if (this.turn === 1 && val < valToBeat) valToBeat = val;
+                    if (this.turn === 0 && val > valToBeat) valToBeat = val;
+                }
+                return valToBeat;
+            }
+
+            this.__proto__.getNextBoards = function () {
+                let ret = [];
+                for (let i in this.grid) {
+                    if (this.grid[i] === ' ') {
+                        let b = this.copy();
+                        if (this.turn === 0) {
+                            b.grid[i] = 'X';
+                        } else {
+                            b.grid[i] = 'O';
+                        }
+                        b.turn = 1 - this.turn;
+                        ret.push(b);
+                    }
+                }
+                return ret;
+            }
+
+            this.__proto__.copy = function () {
+                let b = new Board();
+                for (let i in this.grid) {
+                    b.grid[i] = this.grid[i];
+                }
+                return b;
+            }
+
+            this.__proto__.calculateWinVal = function () {
+                if (
+                    (this.grid[0] === 'X' && this.grid[1] === 'X' && this.grid[2] === 'X') ||
+                    (this.grid[3] === 'X' && this.grid[4] === 'X' && this.grid[5] === 'X') ||
+                    (this.grid[6] === 'X' && this.grid[7] === 'X' && this.grid[8] === 'X') ||
+
+                    (this.grid[0] === 'X' && this.grid[3] === 'X' && this.grid[6] === 'X') ||
+                    (this.grid[1] === 'X' && this.grid[4] === 'X' && this.grid[7] === 'X') ||
+                    (this.grid[2] === 'X' && this.grid[5] === 'X' && this.grid[8] === 'X') ||
+
+                    (this.grid[0] === 'X' && this.grid[4] === 'X' && this.grid[8] === 'X') ||
+                    (this.grid[2] === 'X' && this.grid[4] === 'X' && this.grid[6] === 'X')
+                ) {
+                    if (classicMode) return 1;
+                    else return -1;
+                } else if (
+                    (this.grid[0] === 'O' && this.grid[1] === 'O' && this.grid[2] === 'O') ||
+                    (this.grid[3] === 'O' && this.grid[4] === 'O' && this.grid[5] === 'O') ||
+                    (this.grid[6] === 'O' && this.grid[7] === 'O' && this.grid[8] === 'O') ||
+
+                    (this.grid[0] === 'O' && this.grid[3] === 'O' && this.grid[6] === 'O') ||
+                    (this.grid[1] === 'O' && this.grid[4] === 'O' && this.grid[7] === 'O') ||
+                    (this.grid[2] === 'O' && this.grid[5] === 'O' && this.grid[8] === 'O') ||
+
+                    (this.grid[0] === 'O' && this.grid[4] === 'O' && this.grid[8] === 'O') ||
+                    (this.grid[2] === 'O' && this.grid[4] === 'O' && this.grid[6] === 'O')
+                ) {
+                    if (classicMode) return -1;
+                    else return 1;
+                } else return 0;
+            }
+
+            this.__proto__.winningSpaces = function () {
+                if (
+                    (this.grid[0] === 'X' && this.grid[1] === 'X' && this.grid[2] === 'X') ||
+                    (this.grid[0] === 'O' && this.grid[1] === 'O' && this.grid[2] === 'O')
+                ) {
+                    return [0, 1, 2];
+                }
+                if (
+                    (this.grid[3] === 'X' && this.grid[4] === 'X' && this.grid[5] === 'X') ||
+                    (this.grid[3] === 'O' && this.grid[4] === 'O' && this.grid[5] === 'O')
+                ) {
+                    return [3, 4, 5];
+                }
+                if (
+                    (this.grid[6] === 'X' && this.grid[7] === 'X' && this.grid[8] === 'X') ||
+                    (this.grid[6] === 'O' && this.grid[7] === 'O' && this.grid[8] === 'O')
+                ) {
+                    return [6, 7, 8];
+                }
+
+                if (
+                    (this.grid[0] === 'X' && this.grid[3] === 'X' && this.grid[6] === 'X') ||
+                    (this.grid[0] === 'O' && this.grid[3] === 'O' && this.grid[6] === 'O')
+                ) {
+                    return [0, 3, 6];
+                }
+                if (
+                    (this.grid[1] === 'X' && this.grid[4] === 'X' && this.grid[7] === 'X') ||
+                    (this.grid[1] === 'O' && this.grid[4] === 'O' && this.grid[7] === 'O')
+                ) {
+                    return [1, 4, 7];
+                }
+                if (
+                    (this.grid[2] === 'X' && this.grid[5] === 'X' && this.grid[8] === 'X') ||
+                    (this.grid[2] === 'O' && this.grid[5] === 'O' && this.grid[8] === 'O')
+                ) {
+                    return [2, 5, 8];
+                }
+
+                if (
+                    (this.grid[0] === 'X' && this.grid[4] === 'X' && this.grid[8] === 'X') ||
+                    (this.grid[0] === 'O' && this.grid[4] === 'O' && this.grid[8] === 'O')
+                ) {
+                    return [0, 4, 8];
+                }
+                if (
+                    (this.grid[2] === 'X' && this.grid[4] === 'X' && this.grid[6] === 'X') ||
+                    (this.grid[2] === 'O' && this.grid[4] === 'O' && this.grid[6] === 'O')
+                ) {
+                    return [2, 4, 6];
+                }
+            }
+
+            this.__proto__.isEmpty = function () {
+                return this.grid[0] === ' ' && this.grid[1] === ' ' && this.grid[2] === ' ' && this.grid[3] === ' ' && this.grid[4] === ' ' && this.grid[5] === ' ' && this.grid[6] === ' ' && this.grid[7] === ' ' && this.grid[8] === ' ';
+            }
+        }
+
+        let board = new Board();
+
+        let rounds = 0;
+        let wins = [{ round: 0, num: 0 }];
+        let losses = [{ round: 0, num: 0 }];
+        let ties = [{ round: 0, num: 0 }];
+
+        function addWin() {
+            let prevWin = wins[wins.length - 1];
+            let prevLoss = losses[losses.length - 1];
+            let prevTie = ties[ties.length - 1];
+            rounds++;
+            wins.push({ round: rounds, num: prevWin.num + 1 });
+            losses.push({ round: rounds, num: prevLoss.num });
+            ties.push({ round: rounds, num: prevTie.num });
+        }
+
+        function addLoss() {
+            let prevWin = wins[wins.length - 1];
+            let prevLoss = losses[losses.length - 1];
+            let prevTie = ties[ties.length - 1];
+            rounds++;
+            wins.push({ round: rounds, num: prevWin.num });
+            losses.push({ round: rounds, num: prevLoss.num + 1 });
+            ties.push({ round: rounds, num: prevTie.num });
+        }
+
+        function addTie() {
+            let prevWin = wins[wins.length - 1];
+            let prevLoss = losses[losses.length - 1];
+            let prevTie = ties[ties.length - 1];
+            rounds++;
+            wins.push({ round: rounds, num: prevWin.num });
+            losses.push({ round: rounds, num: prevLoss.num });
+            ties.push({ round: rounds, num: prevTie.num + 1 });
+        }
+
+        function checkForEnd() {
+            let newVal = board.calculateWinVal();
+            if (newVal === -1) {
+                if (classicMode) addLoss();
+                else addWin();
+                return true;
+            } else if (newVal === 1) {
+                if (classicMode) addWin();
+                else addLoss();
+                return true;
+            } else if (board.getNextBoards().length === 0) {
+                addTie();
+                return true;
+            } else return false;
+        }
+
+        function takeTurn() {
+            let children = board.getNextBoards();
+            if (children.length > 0) {
+                let choices = board.miniMax();
+                board = children[choices[Math.floor(Math.random() * choices.length)]];
+                drawBoard();
+            }
+            checkForEnd();
+        }
+
+        function playerTurn(i) {
+            if (board.calculateWinVal() === 0 && board.getNextBoards().length > 0 && board.grid[i] === ' ') {
+                if (board.turn === 0) {
+                    board.grid[i] = 'X';
+                } else {
+                    board.grid[i] = 'O';
+                }
+                board.turn = 1 - board.turn;
+                drawBoard();
+                if (!checkForEnd()) { takeTurn(); }
+            }
+        }
+
+        function drawBoard() {
+            for (let i in board.grid) {
+                let piece = board.grid[i];
+                let button = document.getElementById("button" + i);
+                button.innerHTML = piece;
+                if (piece === 'X') {
+                    button.classList.add('red');
+                }
+                if (piece === 'O') {
+                    button.classList.add('blue');
+                }
+            }
+            let winVal = board.calculateWinVal();
+            if (winVal !== 0) {
+                let spaces = board.winningSpaces();
+                for (let space of spaces) {
+                    let button = document.getElementById("button" + space);
+                    if (winVal === 1) {
+                        if (classicMode) button.classList.add("pink");
+                        else button.classList.add("aqua");
+                    } else {
+                        if (classicMode) button.classList.add("aqua");
+                        else button.classList.add("pink");
+                    }
+                }
+            }
+        }
+
+        function loadBoard() {
+            for (let i in board.grid) {
+                let button = document.getElementById("button" + i);
+                button.addEventListener('click', () => { playerTurn(i) });
+            }
+        }
+
+        function drawCanvas() {
+            let canvas = document.getElementById('graph');
+            let ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#FFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = '#F00';
+            ctx.beginPath();
+            ctx.moveTo(10, canvas.height - 10);
+            for (point of wins) {
+                let x = map(point.round, 0, rounds, 10, canvas.width - 10);
+                let y = map(point.num, 0, rounds, canvas.height - 10, 10);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#00F';
+            ctx.beginPath();
+            ctx.moveTo(10, canvas.height - 10);
+            for (point of losses) {
+                let x = map(point.round, 0, rounds, 10, canvas.width - 10);
+                let y = map(point.num, 0, rounds, canvas.height - 10, 10);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#000';
+            ctx.beginPath();
+            ctx.moveTo(10, canvas.height - 10);
+            for (point of ties) {
+                let x = map(point.round, 0, rounds, 10, canvas.width - 10);
+                let y = map(point.num, 0, rounds, canvas.height - 10, 10);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            if (rounds > 0) {
+                ctx.beginPath();
+                ctx.moveTo(10, 10);
+                ctx.lineTo(10, canvas.height - 10);
+                ctx.stroke();
+            }
+
+            for (let i = 1; i <= rounds; i++) {
+                let x = map(i, 0, rounds, 10, canvas.width - 10);
+                let y1 = canvas.height - 10;
+                let y2 = y1 - 50 / rounds;
+                ctx.beginPath();
+                ctx.moveTo(x, y1);
+                ctx.lineTo(x, y2);
+                ctx.stroke();
+
+                let x1 = 10;
+                let x2 = x1 + 50 / rounds;
+                let y = map(i, 0, rounds, canvas.height - 10, 10);
+                ctx.beginPath();
+                ctx.moveTo(x1, y);
+                ctx.lineTo(x2, y);
+                ctx.stroke();
+            }
+            let info = document.getElementById("info");
+            info.innerHTML = '';
+            let ws = document.createElement('DIV');
+            ws.classList.add('red');
+            ws.innerHTML = '&nbsp X Wins: ' + wins[wins.length - 1].num;
+            info.appendChild(ws);
+            let ls = document.createElement('DIV');
+            ls.classList.add('blue');
+            ls.innerHTML = '&nbsp O Wins: ' + losses[losses.length - 1].num;
+            info.appendChild(ls);
+            let ts = document.createElement('DIV');
+            ts.innerHTML = '&nbsp Ties: ' + ties[ties.length - 1].num;
+            info.appendChild(ts);
+        }
+
+        function map(x, xMin, xMax, yMin, yMax) {
+            return (x - xMin) * (yMax - yMin) / (xMax - xMin) + yMin;
+        }
+
+        function resetBoard() {
+            board = new Board();
+            if (!playerFirst) { takeTurn(); }
+            for (let n of document.querySelectorAll('.red')) {
+                n.classList.remove('red');
+            }
+            for (let n of document.querySelectorAll('.blue')) {
+                n.classList.remove('blue');
+            }
+            for (let n of document.querySelectorAll('.pink')) {
+                n.classList.remove('pink');
+            }
+            for (let n of document.querySelectorAll('.aqua')) {
+                n.classList.remove('aqua');
+            }
+            drawBoard();
+            drawCanvas();
+        }
+
+        function switchTurn() {
+            let goFirst = document.getElementById('goFirst');
+            playerFirst = !goFirst.checked;
+            resetCanvas();
+            resetBoard();
+        }
+
+        function switchMode() {
+            let classic = document.getElementById('classic');
+            classicMode = !classic.checked;
+            resetCanvas();
+            resetBoard();
+            resetDesc();
+        }
+
+        function resetCanvas() {
+            rounds = 0;
+            wins = [{ round: 0, num: 0 }];
+            losses = [{ round: 0, num: 0 }];
+            ties = [{ round: 0, num: 0 }];
+        }
+
+        function resetDesc() {
+            let desc = document.getElementById('desc');
+            if (classicMode) {
+                desc.innerHTML = 'This is Classic Tic-Tac-Toe. Your objective is to make three in a row before your opponent.';
+            } else {
+                desc.innerHTML = 'This is Inverted Tic-Tac-Toe. Your objective is to force your opponent to make three in a row.';
+            }
+        }
+
+        function load() {
+            loadBoard();
+            resetBoard();
+            let reset = document.getElementById('reset');
+            reset.addEventListener('click', () => { resetBoard() })
+            let goFirst = document.getElementById('goFirst');
+            goFirst.addEventListener('click', () => { switchTurn(); })
+            let classic = document.getElementById('classic');
+            classic.addEventListener('click', () => { switchMode(); })
+            resetDesc();
+        }
+
+    </script>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: Courier New, Courier, monospace;
+            font-weight: bold;
+            user-select: none;
+        }
+
+        body {
+            padding: 2em;
+        }
+
+        table {
+            border: 0;
+            border-collapse: collapse;
+        }
+
+            table td {
+                border: 6px solid black;
+            }
+
+            table tr:first-child td {
+                border-top: 0;
+            }
+
+            table tr:last-child td {
+                border-bottom: 0;
+            }
+
+            table tr td:first-child {
+                border-left: 0;
+            }
+
+            table tr td:last-child {
+                border-right: 0;
+            }
+
+        td div {
+            font-size: 96px;
+            background-color: white;
+            border: white;
+            width: 1.5em;
+            height: 1.5em;
+            line-height: 1.5em;
+            text-align: center;
+            user-select: none;
+        }
+
+        td div:hover {
+            cursor: pointer;
+        }
+
+        .red {
+            color: red;
+        }
+
+        .blue {
+            color: blue;
+        }
+
+        .pink {
+            background-color: pink;
+        }
+
+        .aqua {
+            background-color: aqua;
+        }
+
+        .button {
+            background-color: aqua;
+            width: 4em;
+            line-height: 2em;
+            text-align: center;
+            user-select: none;
+            border-radius: 5px;
+        }
+
+            .button:active {
+                filter: brightness(85%);
+            }
+
+            .button:hover {
+                cursor: pointer;
+            }
+
+        .clear {
+            float: none;
+        }
+
+        #reset {
+            font-size: 48px;
+            margin: auto;
+            margin-top: 1em;
+        }
+
+        .left {
+            font-size: 96px;
+            display: inline-block;
+            text-align: center;
+        }
+
+        .right {
+            position: absolute;
+            left: 500px;
+            top: 0;
+            margin: 2em;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-block;
+            width: 60px;
+            height: 34px;
+        }
+
+            .switch input {
+                opacity: 0;
+                width: 0;
+                height: 0;
+            }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #29E;
+            -webkit-transition: .4s;
+            transition: .4s;
+            border-radius: 34px;
+        }
+
+            .slider:before {
+                position: absolute;
+                content: "";
+                height: 26px;
+                width: 26px;
+                left: 4px;
+                bottom: 4px;
+                background-color: white;
+                -webkit-transition: .4s;
+                transition: .4s;
+                border-radius: 50%;
+            }
+
+        input:focus + .slider {
+            box-shadow: 0 0 1px #2196F3;
+        }
+
+        input:checked + .slider:before {
+            -webkit-transform: translateX(26px);
+            -ms-transform: translateX(26px);
+            transform: translateX(26px);
+        }
+
+        label {
+            font-size: 20px;
+        }
+
+        label:not(.switch) {
+            position: relative;
+            width: 30%;
+            display: inline-block;
+        }
+
+        .switch-left {
+            text-align: right;
+        }
+
+        .switch-right {
+            text-align: left;
+        }
+
+        #desc {
+            margin-top: 1em;
+            font-size: 20px;
+            width: 20em;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body onload="load()">
+    <div class="left">
+        <table id="table">
+            <tr>
+                <td>
+                    <div id="button0"></div>
+                </td>
+                <td>
+                    <div id="button1"></div>
+                </td>
+                <td>
+                    <div id="button2"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div id="button3"></div>
+                </td>
+                <td>
+                    <div id="button4"></div>
+                </td>
+                <td>
+                    <div id="button5"></div>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    <div id="button6"></div>
+                </td>
+                <td>
+                    <div id="button7"></div>
+                </td>
+                <td>
+                    <div id="button8"></div>
+                </td>
+            </tr>
+        </table>
+        <div class="button" id="reset">Reset</div>
+        <div>
+            <label class="switch-left">Go First</label>
+            <label class="switch">
+                <input type="checkbox" id="goFirst"/>
+                <span class="slider"></span>
+            </label>
+            <label class="switch-right">Go Second</label>
+        </div>
+        <div>
+            <label class="switch-left">Classic</label>
+            <label class="switch">
+                <input type="checkbox" id="classic" />
+                <span class="slider"></span>
+            </label>
+            <label class="switch-right">Inverse</label>
+        </div>
+        <p id="desc"></p>
+    </div>
+    <div class="right">
+        <canvas id="graph" width="500" height="500"></canvas>
+        <div id="info"></div>
+    </div>
+</body>
+</html>
