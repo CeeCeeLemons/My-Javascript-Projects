@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Fibonacci</title>
+    <script>
+        let xAngOffset = 0;
+        let yAngOffset = 0;
+        function loadCanvas() {
+            let canvas = document.createElement('canvas');
+            canvas.id = 'canvas';
+            canvas.width = 800;
+            canvas.height = 800;
+            document.body.appendChild(canvas);
+
+            let cursorX = 0;
+            let cursorY = 0;
+            let mouseDown = false;
+            document.body.onmousedown = (event) => {
+                mouseDown = true;
+                cursorX = event.clientX;
+                cursorY = event.clientY;
+            }
+            document.body.onmouseup = () => { mouseDown = false; 
+            }
+            document.body.onmousemove = (event) => {
+                if (mouseDown) {
+                    yAngOffset -= (event.clientX - cursorX) / 200;
+                    xAngOffset += (event.clientY - cursorY) / 200;
+                    cursorX = event.clientX;
+                    cursorY = event.clientY;
+                }
+            }
+
+            let div = document.createElement('div');
+            div.innerText = 'Click and drag the screen to move the ball';
+            document.body.appendChild(div);
+        }
+        let i = 0;
+        const phi = (5 ** .5 - 1) / 2;
+        function rx(pos, ang) {
+            return {
+                x: pos.x,
+                y: Math.cos(ang) * pos.y - Math.sin(ang) * pos.z,
+                z: Math.sin(ang) * pos.y + Math.cos(ang) * pos.z
+            };
+        }
+        function ry(pos, ang) {
+            return {
+                x: Math.cos(ang) * pos.x + Math.sin(ang) * pos.z,
+                y: pos.y,
+                z: - Math.sin(ang) * pos.x + Math.cos(ang) * pos.z
+            };
+        }
+        function rz(pos, ang) {
+            return {
+                x: Math.cos(ang) * pos.x - Math.sin(ang) * pos.y,
+                y: Math.sin(ang) * pos.x + Math.cos(ang) * pos.y,
+                z: pos.z
+            };
+        }
+        function loop() {
+            let ctx = document.getElementById('canvas').getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, 800, 800);
+            ctx.fillStyle = '#0f0';
+            for (let j = 0; j <= i; j++) {
+                let height = 350 * (20 + Math.cos(j / 4) + Math.cos(j / 2) + Math.cos(j) + Math.cos(2 * j) + Math.cos(4 * j)) / 25;
+                let pos = {
+                    x: height * (1 - (1 - 2 * j / i) ** 2) ** .5 * Math.cos(2 * Math.PI * phi * j),
+                    y: height * (1 - (1 - 2 * j / i) ** 2) ** .5 * Math.sin(2 * Math.PI * phi * j),
+                    z: height * (1 - 2 * j / i)
+                };
+                pos = rx(pos, xAngOffset);
+                pos = ry(pos, yAngOffset);
+                ctx.beginPath();
+                if (pos.z < 0) ctx.arc(pos.x + 400, pos.y + 400, 2, 0, 2 * Math.PI);
+                ctx.fill();
+            }
+            i++;
+            /*if (i < 1000)*/ window.requestAnimationFrame(loop);
+        }
+        function load() {
+            loadCanvas();
+            loop();
+        }
+    </script>
+    <style type="text/css">
+        * {
+            color: white;
+            user-select: none;
+        }
+        body {
+            background-color: black;
+        }
+    </style>
+</head>
+<body onload="load()"></body>
+</html>
