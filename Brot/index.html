@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Brot</title>
+    <script>
+
+        function makeScans(arr) {
+            let step = Math.pow(2, Math.round(Math.log(arr.length) / Math.log(2)));
+            let ret = [];
+            while (step > 1) {
+                for (let i = 0; i < arr.length; i += step) {
+                    let index = Math.round(i);
+                    if (arr[index] !== undefined) {
+                        ret.push(arr[index]);
+                    }
+                }
+                step /= 2;
+            }
+            for (let i = 0; i < arr.length; i++) {
+                if (arr[i] !== undefined) {
+                    ret.push(arr[i]);
+                }
+            }
+            return ret;
+        }
+
+        function Complex(a, b) {
+            this.a = a;
+            this.b = b;
+
+            this.__proto__.add = function (c) {
+                return new Complex(this.a + c.a, this.b + c.b);
+            }
+
+            this.__proto__.sub = function (c) {
+                return new Complex(this.a - c.a, this.b - c.b);
+            }
+
+            this.__proto__.mul = function (c) {
+                return new Complex(
+                    this.a * c.a - this.b * c.b,
+                    this.a * c.b + this.b * c.a
+                );
+            }
+
+            this.__proto__.div = function (c) {
+                return new Complex(
+                    (this.a * c.a + this.b * c.b) / (c.a * c.a + c.b * c.b),
+                    (this.b * c.a - this.a * c.b) / (c.a * c.a + c.b * c.b)
+                );
+            }
+
+            this.__proto__.length = function () {
+                return Math.sqrt(this.a * this.a + this.b * this.b);
+            }
+
+            this.__proto__.pow = function (n) {
+                return new Complex(
+                    Math.pow(this.a * this.a + this.b * this.b, n / 2) * Math.cos(n * Math.atan2(this.b, this.a)),
+                    Math.pow(this.a * this.a + this.b * this.b, n / 2) * Math.sin(n * Math.atan2(this.b, this.a))
+                );
+            }
+        }
+
+        let cellSize = .5;
+
+        let bound = 4;
+        let maxTries = 60;
+
+        function drawPass(y, xCenter, yCenter, height, func) {
+            let canvas = document.getElementById('canvas');
+            let ctx = canvas.getContext('2d');
+
+            let yMin = yCenter - height / 2;
+            let yMax = yCenter + height / 2;
+
+            let xMin = xCenter - height * canvas.width / canvas.height / 2;
+            let xMax = xCenter + height * canvas.width / canvas.height / 2;
+
+            let xStep = cellSize * (xMax - xMin) / canvas.width;
+
+            for (let x = xMin; x < xMax; x += xStep) {
+                let c = new Complex(x, y);
+                let f = func(c);
+                let i;
+                for (i = 0; i < maxTries && c.length() < bound; i++) {
+                    c = f(c);
+                }
+                ctx.fillStyle = getColor(i, maxTries);
+                let mapX = cellSize * Math.round(map(x, xMin, xMax, 0, canvas.width) / cellSize);
+                let mapY = cellSize * Math.round(map(y, yMin, yMax, canvas.height, 0) / cellSize);
+                ctx.fillRect(mapX, mapY, Math.max(cellSize, 1), Math.max(cellSize, 1));
+            }
+        }
+
+        function drawCanvas(xCenter, yCenter, height, func) {
+
+            let yMin = yCenter - height / 2;
+            let yMax = yCenter + height / 2;
+
+            let ys = []
+            for (let n of Array(canvas.height / cellSize).entries()) {
+                ys.push(n[0] * cellSize * (yMax - yMin) / canvas.height + yMin);
+            }
+
+            ys = makeScans(ys);
+
+            let i = 0;
+
+            let loop = function () {
+                let y = ys[i];
+                drawPass(y, xCenter, yCenter, height, func);
+                i++;
+                if (i < ys.length) window.requestAnimationFrame(loop);
+            }
+
+            window.requestAnimationFrame(loop);
+
+        }
+
+        function getColor(h, hMax) {
+            let c = Math.trunc(h * 256 * 6 / hMax);
+
+            let r = 0;
+            let g = 0;
+            let b = 0;
+
+            if (c < 256) {
+                r = 255;
+                g = c;
+            } else if (c < 256 * 2) {
+                c -= 256;
+                r = 255 - c;
+                g = 255;
+            } else if (c < 256 * 3) {
+                c -= 256 * 2;
+                g = 255;
+                b = c;
+            } else if (c < 256 * 4) {
+                c -= 256 * 3;
+                g = 255 - c;
+                b = 255;
+            } else if (c < 256 * 5) {
+                c -= 256 * 4;
+                b = 255;
+                r = c;
+            } else if (c < 256 * 6) {
+                c -= 256 * 5;
+                b = 255 - c;
+                r = 255;
+            } else {
+                return '#000';
+            }
+
+            let ret = (r * 256 * 256 + g * 256 + b).toString(16);
+
+            while (ret.length < 6) ret = '0' + ret;
+
+            return '#' + ret + '77';
+        }
+
+        function load() {
+
+            let makeBrot = (start) => {
+                let c = start;
+                return (x) => c.add(x.mul(x));
+            };
+
+            let makeJulia = (n, cx, cy) => {
+                let a = cx;
+                let b = cy;
+                return () => {
+                    return (x) => (x.pow(n)).add(new Complex(a, b));
+                }
+            }
+
+            drawCanvas(0, 0, 6, makeJulia(Math.trunc(Math.random()*6)-2, Math.random()*2-1, Math.random()*2-1));
+
+            //drawCanvas(0, 0, 6, makeBrot);
+        }
+
+        function map(x, xMin, xMax, yMin, yMax) {
+            return (x - xMin) * (yMax - yMin) / (xMax - xMin) + yMin;
+        }
+
+    </script>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
+</head>
+<body onload="load()">
+    <div id="loadingMessage"></div>
+    <canvas id="canvas" width="3840" height="2160">
+    </canvas>
+</body>
+</html>
