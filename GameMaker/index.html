@@ -1,0 +1,1815 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Game Maker</title>
+    <script>
+        let keysDown = [];
+
+        function keyPressed(event) {
+            keysDown[event.keyCode] = true;
+        }
+
+        function keyReleased(event) {
+            keysDown[event.keyCode] = false;
+        }
+
+        function isKeyDown(key) {
+            key = key.toUpperCase();
+            if (key === "BACKSPACE") return keysDown[8];
+            if (key === "TAB") return keysDown[9];
+            if (key === "ENTER") return keysDown[13];
+            if (key === "SHIFT") return keysDown[16];
+            if (key === "CTRL") return keysDown[17];
+            if (key === "ALT") return keysDown[18];
+            if (key === "CAPS") return keysDown[20];
+            if (key === "ESC") return keysDown[27];
+            if (key === "SPACE") return keysDown[32];
+            if (key === "PGUP") return keysDown[33];
+            if (key === "PGDN") return keysDown[34];
+            if (key === "END") return keysDown[35];
+            if (key === "HOME") return keysDown[36];
+            if (key === "LEFT") return keysDown[37];
+            if (key === "UP") return keysDown[38];
+            if (key === "RIGHT") return keysDown[39];
+            if (key === "DOWN") return keysDown[40];
+            if (key === "PRINT") return keysDown[44];
+            if (key === "INSERT") return keysDown[45];
+            if (key === "DELETE") return keysDown[46];
+            return keysDown[key.charCodeAt(0)];
+        }
+
+        function Color(r, g, b) {
+            this.r = r;
+            this.g = g;
+            this.b = b;
+            this.__proto__.equals = function (c) {
+                return this.r === c.r && this.g === c.g && this.b === c.b;
+            }
+        }
+
+        function Sprite() {
+            for (let r = 0; r < 16; r++) {
+                this[r] = [];
+                for (let c = 0; c < 16; c++) {
+                    this[r][c] = new Color(0, 0, 0);
+                }
+            }
+        }
+
+        function drawSprite(ctx, sprite, showInvis, x = 0, y = 0) {
+            let tempColor = palleteInfo.getColor();
+            for (let r = 0; r < 16; r++) {
+                for (let c = 0; c < 16; c++) {
+                    palleteInfo.setColor(sprite[r][c].r, sprite[r][c].g, sprite[r][c].b);
+                    ctx.fillStyle = palleteInfo.getRGB();
+                    if (ctx.fillStyle === 'rgba(0, 0, 0, 0)') {
+                        if (showInvis) {
+                            for (let j = 0; j < 3; j++) {
+                                for (let k = 0; k < 3; k++) {
+                                    if ((j + k) % 2) {
+                                        ctx.fillStyle = '#777';
+                                    } else {
+                                        ctx.fillStyle = '#fff';
+                                    }
+                                    ctx.fillRect(x + c * 3 + j, y + r * 3 + k, 1, 1);
+                                }
+                            }
+                        }
+                    } else {
+                        ctx.fillRect(x + c * 3, y + r * 3, 3, 3);
+                    }
+                }
+            }
+            palleteInfo.setColor(tempColor.r, tempColor.g, tempColor.b);
+        }
+
+        function SpriteStat(background, player, solid, harmful, stationary, item, target) {
+            this.background = background;
+            this.player = player;
+            this.solid = solid;
+            this.harmful = harmful;
+            this.stationary = stationary;
+            this.item = item;
+            this.target = target;
+        }
+
+        let sprites = Array(16);
+        let spriteStats = Array(16);
+        let grid = [];
+        let gridw = [];
+
+        let palleteInfo = {
+            r: 0,
+            g: 0,
+            b: 0,
+            getRGB: function () {
+                if (this.r === -1 && this.g === -1 && this.b === -1) {
+                    return '#00000000';
+                }
+                return '#' + this.r.toString(16) + this.g.toString(16) + this.b.toString(16);
+            },
+            fillType: 0,
+            getColor: function () {
+                return new Color(this.r, this.g, this.b);
+            },
+            setColor: function (r, g, b) {
+                this.r = r;
+                this.g = g;
+                this.b = b;
+                this.ctx.fillStyle = this.getRGB();
+                this.ctx.fillRect(0, 0, 48, 48);
+                this.rSlider.value = r;
+                this.gSlider.value = g;
+                this.bSlider.value = b;
+                this.rLabel.innerText = "r: " + 17 * palleteInfo.r;
+                this.gLabel.innerText = "g: " + 17 * palleteInfo.g;
+                this.bLabel.innerText = "b: " + 17 * palleteInfo.b;
+                this.colorLabel.innerText = 'Color: ' + (palleteInfo.getRGB()).toUpperCase();
+            },
+            ctx: undefined,
+            rSlider: undefined,
+            gSlider: undefined,
+            bSlider: undefined,
+            rLabel: undefined,
+            gLabel: undefined,
+            bLabel: undefined,
+            colorLabel: undefined
+        };
+
+        let worldPalleteInfo = {
+            i: 0,
+            onchange: function () { },
+            setIndex: function (i) {
+                this.i = parseInt(i);
+                this.onchange();
+            }
+        }
+
+        function reset() {
+            loadSprite(sprites[worldPalleteInfo.i]);
+        }
+
+        function saveSpriteGrid() {
+            let sprite = new Sprite();
+            for (let r = 0; r < 16; r++) {
+                for (let c = 0; c < 16; c++) {
+                    sprite[r][c] = grid[r][c].color;
+                }
+            }
+            return sprite;
+        }
+
+        function loadSprite(sprite) {
+            let temp = palleteInfo.getColor();
+            for (let r = 0; r < 16; r++) {
+                for (let c = 0; c < 16; c++) {
+                    palleteInfo.setColor(sprite[r][c].r, sprite[r][c].g, sprite[r][c].b);
+                    grid[r][c].setColor();
+                }
+            }
+            palleteInfo.setColor(temp.r, temp.g, temp.b);
+        }
+
+        let mousedown;
+        window.addEventListener("mousedown", () => { 
+            mousedown = true;
+        });
+        window.addEventListener("mouseup", () => { 
+            mousedown = false;
+        });
+
+        function loadSpriteGrid() {
+            let spriteGrid = document.getElementById("spriteGrid");
+            let tbody = document.createElement("tbody");
+            spriteGrid.appendChild(tbody);
+            for (let r = 0; r < 16; r++) {
+                let tr = document.createElement("tr");
+                tr.id = 'tr-' + r;
+                grid.push([]);
+                for (let c = 0; c < 16; c++) {
+                    let td = document.createElement("td");
+                    td.id = 'td-' + r + '-' + c;
+                    td.classList.add('btn');
+
+                    let canvas = document.createElement('canvas');
+                    canvas.width = 48;
+                    canvas.height = 48;
+                    let ctx = canvas.getContext('2d');
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(0, 0, 48, 48);
+                    td.appendChild(canvas);
+                    grid[r].push({
+                        ctx: ctx,
+                        color: new Color(15, 15, 15),
+                        r: r,
+                        c: c,
+                        fill: function () {
+                            if (!this.color.equals(palleteInfo.getColor())) {
+                                let tempColor = this.color;
+                                this.setColor();
+                                if (this.r > 0 && grid[r - 1][c].color.equals(tempColor)) {
+                                    grid[r - 1][c].fill();
+                                }
+                                if (this.r < 15 && grid[r + 1][c].color.equals(tempColor)) {
+                                    grid[r + 1][c].fill();
+                                }
+                                if (this.c > 0 && grid[r][c - 1].color.equals(tempColor)) {
+                                    grid[r][c - 1].fill();
+                                }
+                                if (this.c < 15 && grid[r][c + 1].color.equals(tempColor)) {
+                                    grid[r][c + 1].fill();
+                                }
+                            }
+                        },
+                        setColor: function () {
+                            this.ctx.fillStyle = palleteInfo.getRGB();
+                            if (this.ctx.fillStyle === 'rgba(0, 0, 0, 0)') {
+                                this.erase();
+                            } else {
+                                this.ctx.fillRect(0, 0, 48, 48);
+                                this.color = palleteInfo.getColor();
+                            }
+                        },
+                        erase: function () {
+                            for (let i = 0; i < 8; i++) {
+                                for (let j = 0; j < 8; j++) {
+                                    if ((i + j) % 2) {
+                                        this.ctx.fillStyle = '#777';
+                                    } else {
+                                        this.ctx.fillStyle = '#fff';
+                                    }
+                                    this.ctx.fillRect(i * 6, j * 6, 6, 6);
+                                }
+                            }
+                            this.color = new Color(-1, -1, -1);
+                        }
+                    });
+
+                    function editSquare() {
+                        if (palleteInfo.fillType === 0) {
+                            grid[r][c].setColor();
+                        } else if (palleteInfo.fillType === 1) {
+                            grid[r][c].fill();
+                        } else if (palleteInfo.fillType === 2) {
+                            grid[r][c].erase();
+                        } else if (palleteInfo.fillType === 3) {
+                            palleteInfo.setColor(grid[r][c].color.r, grid[r][c].color.g, grid[r][c].color.b);
+                        }
+                    }
+
+                    td.onclick = () => {
+                        editSquare();
+                    };
+
+                    
+                    td.addEventListener("mousemove", () => { 
+                        if (mousedown) {
+                            editSquare();
+                        }
+                    });
+
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+        }
+
+        function makeColorSlider(l, label, ctx) {
+            let row = document.createElement('div');
+            let lab = document.createElement('label');
+            lab.innerText = l + ": " + 17 * palleteInfo[l];
+            palleteInfo[l + 'Label'] = lab;
+            row.appendChild(lab);
+            let slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = 0;
+            slider.max = 15;
+            slider.value = palleteInfo[l];
+            slider.oninput = () => {
+                palleteInfo[l] = parseInt(slider.value);
+                label.innerText = 'Color: ' + (palleteInfo.getRGB()).toUpperCase();
+                lab.innerText = l + ": " + 17 * palleteInfo[l]; 
+                ctx.fillStyle = palleteInfo.getRGB();
+                ctx.fillRect(0, 0, 48, 48);
+            };
+            row.appendChild(slider);
+            palleteInfo[l + "Slider"] = slider;
+            return row;
+        }
+
+        function loadEditorPallete() {
+            let editorPallete = document.getElementById('editorPallete');
+
+            let left = document.createElement('div');
+            editorPallete.appendChild(left);
+
+            let label = document.createElement('label');
+            label.innerText = 'Color: ' + (palleteInfo.getRGB()).toUpperCase();
+            palleteInfo.colorLabel = label;
+            left.appendChild(label);
+
+            let canvas = document.createElement('canvas');
+            canvas.id = 'previewColor';
+            canvas.width = 48;
+            canvas.height = 48;
+            let ctx = canvas.getContext('2d');
+            palleteInfo.ctx = ctx;
+            ctx.fillStyle = palleteInfo.getRGB();
+            ctx.fillRect(0, 0, 48, 48);
+
+            left.appendChild(makeColorSlider('r', label, ctx));
+            left.appendChild(makeColorSlider('g', label, ctx));
+            left.appendChild(makeColorSlider('b', label, ctx));
+            left.appendChild(canvas);
+
+            let right = document.createElement('div');
+            editorPallete.appendChild(right);
+
+            let fillTypeButton = document.createElement('div');
+            fillTypeButton.innerText = 'Pencil';
+            fillTypeButton.classList.add('btn', 'btn-round');
+            fillTypeButton.onclick = () => {
+                palleteInfo.fillType = (palleteInfo.fillType + 1) % 4;
+                if (palleteInfo.fillType === 0) {
+                    fillTypeButton.innerText = 'Pencil';
+                } else if (palleteInfo.fillType === 1) {
+                    fillTypeButton.innerText = 'Fill';
+                } else if (palleteInfo.fillType === 2) {
+                    fillTypeButton.innerText = 'Eraser';
+                } else if (palleteInfo.fillType === 3) {
+                    fillTypeButton.innerText = 'Pick';
+                }
+            }
+            right.appendChild(fillTypeButton);
+
+            let resetButton = document.createElement('div');
+            resetButton.innerText = 'Reset';
+            resetButton.classList.add('btn', 'btn-round');
+            resetButton.onclick = () => { reset(); };
+            right.appendChild(resetButton);
+
+            let right2 = document.createElement('div');
+            right2.id = 'right2';
+            editorPallete.appendChild(right2);
+
+            let editWorldButton = document.createElement('div');
+            editWorldButton.classList.add('btn', 'btn-wide');
+            editWorldButton.innerText = 'Edit World';
+            editWorldButton.onclick = () => {
+                let spriteEditor = document.getElementById('spriteEditor');
+                spriteEditor.classList.add('hidden');
+                
+                let worldEditor = document.getElementById('worldEditor');
+                worldEditor.classList.remove('hidden');
+                reloadWorldEditor();
+            };
+            right2.appendChild(editWorldButton);
+
+            let right3 = document.createElement('div');
+            right3.id = 'right3';
+            editorPallete.appendChild(right3);
+        }
+
+        function loadSpritePallete() {
+            let colors = [
+                { r: 15, g: 0,  b: 0 },
+                { r: 15, g: 7,  b: 0 },
+                { r: 15, g: 15,  b: 0 },
+                { r: 10, g: 15,  b: 5 },
+                { r: 0, g: 15,  b: 0 },
+                { r: 0, g: 10,  b: 0 },
+                { r: 0, g: 15,  b: 15 },
+                { r: 0, g: 7,  b: 15 },
+                { r: 0, g: 0,  b: 15 },
+                { r: 7, g: 0,  b: 15 },
+                { r: 15, g: 0,  b: 15 },
+                { r: 15, g: 10, b: 10 },
+                { r: 7, g: 5,  b: 0 },
+                { r: 0, g: 0,  b: 0 },
+                { r: 5, g: 5,  b: 5 },
+                { r: 10, g: 10,  b: 10 }
+            ];
+
+            let right2 = document.getElementById('right2');
+            let saveButton = document.createElement('div');
+            saveButton.innerText = 'Save Sprite';
+            saveButton.classList.add('btn', 'btn-wide');
+            function swapSaveButton() {
+                sprites[worldPalleteInfo.i] = saveSpriteGrid();
+                if (spriteStats[worldPalleteInfo.i] === undefined) {
+                    spriteStats[worldPalleteInfo.i] = new SpriteStat(true, false, false, false, false, false, false);
+                }
+                let canvas = document.getElementById('canvas_' + worldPalleteInfo.i);
+                let ctx = canvas.getContext('2d');
+                drawSprite(ctx, sprites[worldPalleteInfo.i], true);
+                editCurrentSprite();
+                save();
+            }
+            saveButton.onclick = () => { swapSaveButton(); };
+            right2.appendChild(saveButton);
+
+            let spritePallete = document.getElementById('spritePallete');
+
+            for (let i in colors) {
+                palleteInfo.setColor(colors[i].r, colors[i].g, colors[i].b);
+                grid[0][0].fill();
+                
+                let canvas = document.createElement('canvas');
+                canvas.id = 'canvas_' + i;
+                canvas.width = 48;
+                canvas.height = 48;
+                let ctx = canvas.getContext('2d');
+                sprites[i] = saveSpriteGrid();
+                if (!spriteStats[i]) {
+                    spriteStats[i] = new SpriteStat(true, false, false, false, false, false, false);
+                }
+                drawSprite(ctx, sprites[i], true);
+                canvas.onclick = () => {
+                    worldPalleteInfo.setIndex(i);
+                    loadSprite(sprites[i]);
+                    editCurrentSprite();
+                };
+                spritePallete.appendChild(canvas);
+            }
+            palleteInfo.setColor(0, 0, 0);
+            reset();
+
+            let right3 = document.getElementById('right3');
+            let label = document.createElement('label');
+            label.innerText = 'Current Sprite:';
+            right3.appendChild(label);
+
+            let currentSprite = document.createElement('canvas')
+            currentSprite.id = 'currentSprite';
+            currentSprite.width = 48;
+            currentSprite.height = 48;
+            let cS = currentSprite.getContext('2d');
+            function editCurrentSprite() {
+                drawSprite(cS, sprites[worldPalleteInfo.i], true);
+            }
+            editCurrentSprite();
+            right3.appendChild(currentSprite);
+        }
+
+        function loadWorldEditor() {
+            let worldEditor = document.getElementById('worldEditor');
+            worldEditor.classList.add('hidden');
+
+            let penType = 0;
+
+            let worldGrid = document.getElementById("worldGrid");
+            let tbody = document.createElement("tbody");
+            worldGrid.appendChild(tbody);
+            for (let r = 0; r < 16; r++) {
+                let tr = document.createElement("tr");
+                tr.id = 'tr-' + r;
+                gridw.push([]);
+                for (let c = 0; c < 16; c++) {
+                    let td = document.createElement("td");
+                    td.id = 'td-' + r + '-' + c;
+                    td.classList.add('btn');
+
+                    let canvas = document.createElement('canvas');
+                    canvas.width = 48;
+                    canvas.height = 48;
+                    let ctx = canvas.getContext('2d');
+                    ctx.fillStyle = "#fff";
+                    ctx.fillRect(0, 0, 48, 48);
+                    td.appendChild(canvas);
+                    gridw[r].push({
+                        background: undefined,
+                        foreground: undefined,
+                        ctx: ctx,
+                        fill: function (oldFore, oldBack) {
+                            if (oldFore !== worldPalleteInfo.i && oldBack !== worldPalleteInfo.i) {
+                                if (spriteStats[worldPalleteInfo.i].background) {
+                                    if (this.background === oldBack) {
+                                        this.background = worldPalleteInfo.i;
+                                        this.ctx.fillStyle = '#fff';
+                                        this.ctx.fillRect(0, 0, 48, 48);
+                                        drawSprite(this.ctx, sprites[this.background], false);
+                                        if (this.foreground !== undefined) {
+                                            drawSprite(this.ctx, sprites[this.foreground], false);
+                                        }
+                                        if (r > 0) {
+                                            gridw[r - 1][c].fill(oldFore, oldBack);
+                                        }
+                                        if (r < 15) {
+                                            gridw[r + 1][c].fill(oldFore, oldBack);
+                                        }
+                                        if (c > 0) {
+                                            gridw[r][c - 1].fill(oldFore, oldBack);
+                                        }
+                                        if (c < 15) {
+                                            gridw[r][c + 1].fill(oldFore, oldBack);
+                                        }
+                                    }
+                                } else {
+                                    if (this.foreground === oldFore) {
+                                        this.foreground = worldPalleteInfo.i;
+                                        this.ctx.fillStyle = '#fff';
+                                        this.ctx.fillRect(0, 0, 48, 48);
+                                        if (this.background !== undefined) {
+                                            drawSprite(this.ctx, sprites[this.background], false);
+                                        }
+                                        drawSprite(this.ctx, sprites[this.foreground], false);
+                                        if (r > 0) {
+                                            gridw[r - 1][c].fill(oldFore, oldBack);
+                                        }
+                                        if (r < 15) {
+                                            gridw[r + 1][c].fill(oldFore, oldBack);
+                                        }
+                                        if (c > 0) {
+                                            gridw[r][c - 1].fill(oldFore, oldBack);
+                                        }
+                                        if (c < 15) {
+                                            gridw[r][c + 1].fill(oldFore, oldBack);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    });
+
+                    function editSquare() {
+                        if (penType === 0) {
+                            if (spriteStats[worldPalleteInfo.i].background === true) {
+                                gridw[r][c].background = worldPalleteInfo.i;
+                            } else {
+                                gridw[r][c].foreground = worldPalleteInfo.i;
+                            }
+                        } else if (penType === 1) {
+                            gridw[r][c].fill(gridw[r][c].foreground, gridw[r][c].background);
+                        } else if (penType === 2) {
+                            gridw[r][c].foreground = undefined;
+                        } else if (penType === 3) {
+                            gridw[r][c].background = undefined;
+                            gridw[r][c].foreground = undefined;
+                        }
+                        ctx.fillStyle = '#fff';
+                        ctx.fillRect(0, 0, 48, 48);
+                        if (gridw[r][c].background !== undefined) {
+                            drawSprite(ctx, sprites[gridw[r][c].background], false);
+                        }
+                        if (gridw[r][c].foreground !== undefined) {
+                            drawSprite(ctx, sprites[gridw[r][c].foreground], false);
+                        }
+                        save();
+                    }
+
+                    td.onclick = () => { editSquare(); };
+                    
+                    td.addEventListener("mousemove", () => { 
+                        if (mousedown) {
+                            editSquare();
+                        }
+                    });
+
+                    tr.appendChild(td);
+                }
+                tbody.appendChild(tr);
+            }
+
+            let worldPallete = document.getElementById("worldPallete");
+
+            let left = document.createElement('div');
+            worldPallete.appendChild(left);
+
+            let previewLabel = document.createElement('div');
+            previewLabel.innerText = 'Current Sprite:';
+            left.appendChild(previewLabel);
+
+            let canvas = document.createElement('canvas');
+            canvas.id = 'previewSprite';
+            canvas.width = 48;
+            canvas.height = 48;
+            let ctx = canvas.getContext('2d');
+            drawSprite(ctx, sprites[worldPalleteInfo.i], true);
+            worldPalleteInfo.onchange = function () {
+                drawSprite(ctx, sprites[worldPalleteInfo.i], true);
+
+                updateBackgroundButton();
+                updatePlayerButton();  
+                updateSolidButton();   
+                updateHarmfulButton();
+                updateStationaryButton();
+                updateItemButton();
+                updateTargetButton();
+            }
+            left.appendChild(canvas);
+
+            let editSpriteButton = document.createElement('div');
+            editSpriteButton.classList.add('btn', 'btn-wide');
+            editSpriteButton.innerText = 'Edit Sprites';
+            editSpriteButton.onclick = () => {
+                let spriteEditor = document.getElementById('spriteEditor');
+                spriteEditor.classList.remove('hidden');
+                
+                let worldEditor = document.getElementById('worldEditor');
+                worldEditor.classList.add('hidden');
+            };
+            left.appendChild(editSpriteButton);
+
+            let eraseButton = document.createElement('div');
+            eraseButton.classList.add('btn', 'btn-wide');
+            eraseButton.innerText = 'Pen';
+            eraseButton.onclick = () => {
+                penType = (penType + 1) % 4;
+                if (penType === 0) {
+                    eraseButton.innerText = 'Pen';
+                } else if (penType === 1) {
+                    eraseButton.innerText = 'Fill';
+                } else if (penType === 2) {
+                    eraseButton.innerText = 'Erase Front';
+                } else if (penType === 3) {
+                    eraseButton.innerText = 'Erase All';
+                }
+            };
+            left.appendChild(eraseButton);
+
+            let testWorldButton = document.createElement('div');
+            testWorldButton.classList.add('btn', 'btn-wide');
+            testWorldButton.innerText = 'Test World';
+            testWorldButton.onclick = () => {
+                let worldSection = document.getElementById('worldSection');
+                worldSection.classList.remove('hidden');
+                
+                let worldEditor = document.getElementById('worldEditor');
+                worldEditor.classList.add('hidden');
+                
+                let spritePallete = document.getElementById('spritePallete');
+                spritePallete.classList.add('hidden');
+
+                parseWorld();
+                drawWorld();
+            };
+            left.appendChild(testWorldButton);
+
+            let right = document.createElement('div');
+            worldPallete.appendChild(right);
+
+            let top = document.createElement('div');
+            top.classList.add('inline-block');
+            right.appendChild(top);
+
+            let bottom = document.createElement('div');
+            bottom.classList.add('inline-block');
+            right.appendChild(bottom);
+
+            let backgroundButton = document.createElement('div');
+            backgroundButton.id = 'backgroundButton';
+            backgroundButton.classList.add('btn', 'btn-wide');
+            backgroundButton.innerText = 'Background';
+            function updateBackgroundButton() {
+                if (spriteStats[worldPalleteInfo.i].background) {
+                    backgroundButton.classList.add('btn-selected');
+                } else {
+                    backgroundButton.classList.remove('btn-selected');
+                }
+            }
+            updateBackgroundButton();
+            backgroundButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].background) {
+                    spriteStats[worldPalleteInfo.i].background = true;
+                    spriteStats[worldPalleteInfo.i].player = false;
+                    spriteStats[worldPalleteInfo.i].solid = false;
+                    spriteStats[worldPalleteInfo.i].harmful = false;
+                    spriteStats[worldPalleteInfo.i].stationary = false;
+                    spriteStats[worldPalleteInfo.i].item = false;
+                    spriteStats[worldPalleteInfo.i].target = false;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();  
+                    updateSolidButton();   
+                    updateHarmfulButton();
+                    updateStationaryButton();
+                    updateItemButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                }
+            };
+            top.appendChild(backgroundButton);
+
+            let playerButton = document.createElement('div');
+            playerButton.id = 'playerButton';
+            playerButton.classList.add('btn', 'btn-round');
+            playerButton.innerText = 'Player';
+            function updatePlayerButton() {
+                if (spriteStats[worldPalleteInfo.i].player) {
+                    playerButton.classList.add('btn-selected');
+                } else {
+                    playerButton.classList.remove('btn-selected');
+                }
+            }
+            updatePlayerButton();
+            playerButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].player) {
+                    spriteStats[worldPalleteInfo.i].background = false;
+                    spriteStats[worldPalleteInfo.i].player = true;
+                    spriteStats[worldPalleteInfo.i].solid = false;
+                    spriteStats[worldPalleteInfo.i].harmful = false;
+                    spriteStats[worldPalleteInfo.i].stationary = false;
+                    spriteStats[worldPalleteInfo.i].item = false;
+                    spriteStats[worldPalleteInfo.i].target = false;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();       
+                    updateSolidButton();     
+                    updateHarmfulButton();
+                    updateStationaryButton();
+                    updateItemButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                }
+            };
+            top.appendChild(playerButton);
+
+            let solidButton = document.createElement('div');
+            solidButton.id = 'solidButton';
+            solidButton.classList.add('btn', 'btn-round');
+            solidButton.innerText = 'Solid';
+            function updateSolidButton() {
+                if (spriteStats[worldPalleteInfo.i].solid) {
+                    solidButton.classList.add('btn-selected');
+                } else {
+                    solidButton.classList.remove('btn-selected');
+                }
+            }
+            updateSolidButton();
+            solidButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].solid) {
+                    spriteStats[worldPalleteInfo.i].background = false;
+                    spriteStats[worldPalleteInfo.i].player = false;
+                    spriteStats[worldPalleteInfo.i].solid = true;
+                    spriteStats[worldPalleteInfo.i].stationary = true;
+                    spriteStats[worldPalleteInfo.i].item = false;
+                    spriteStats[worldPalleteInfo.i].target = false;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();
+                    updateSolidButton();
+                    updateStationaryButton();
+                    updateItemButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                } else if (spriteStats[worldPalleteInfo.i].harmful || spriteStats[worldPalleteInfo.i].stationary) {
+                    spriteStats[worldPalleteInfo.i].solid = false;
+                    updateSolidButton();
+                }
+            };
+            top.appendChild(solidButton);
+
+            let harmfulButton = document.createElement('div');
+            harmfulButton.id = 'harmfulButton';
+            harmfulButton.classList.add('btn', 'btn-round');
+            harmfulButton.innerText = 'Harmful';
+            function updateHarmfulButton() {
+                if (spriteStats[worldPalleteInfo.i].harmful) {
+                    harmfulButton.classList.add('btn-selected');
+                } else {
+                    harmfulButton.classList.remove('btn-selected');
+                }
+            }
+            updateHarmfulButton();
+            harmfulButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].harmful) {
+                    spriteStats[worldPalleteInfo.i].background = false;
+                    spriteStats[worldPalleteInfo.i].player = false;
+                    spriteStats[worldPalleteInfo.i].harmful = true;
+                    spriteStats[worldPalleteInfo.i].item = false;
+                    spriteStats[worldPalleteInfo.i].target = false;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();       
+                    updateHarmfulButton();
+                    updateItemButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                } else if (spriteStats[worldPalleteInfo.i].solid || spriteStats[worldPalleteInfo.i].stationary) {
+                    spriteStats[worldPalleteInfo.i].harmful = false;
+                    updateHarmfulButton();
+                }
+            };
+            top.appendChild(harmfulButton);
+
+            let stationaryButton = document.createElement('div');
+            stationaryButton.id = 'stationaryButton';
+            stationaryButton.classList.add('btn', 'btn-wide');
+            stationaryButton.innerText = 'Stationary';
+            function updateStationaryButton() {
+                if (spriteStats[worldPalleteInfo.i].stationary) {
+                    stationaryButton.classList.add('btn-selected');
+                } else {
+                    stationaryButton.classList.remove('btn-selected');
+                }
+            }
+            updateStationaryButton();
+            stationaryButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].stationary) {
+                    spriteStats[worldPalleteInfo.i].background = false;
+                    spriteStats[worldPalleteInfo.i].player = false;
+                    spriteStats[worldPalleteInfo.i].stationary = true;
+                    spriteStats[worldPalleteInfo.i].target = false;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();       
+                    updateStationaryButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                } else if (spriteStats[worldPalleteInfo.i].harmful || spriteStats[worldPalleteInfo.i].item) {
+                    spriteStats[worldPalleteInfo.i].stationary = false;
+                    updateStationaryButton();
+                }
+            };
+            bottom.appendChild(stationaryButton);
+
+            let itemButton = document.createElement('div');
+            itemButton.id = 'itemButton';
+            itemButton.classList.add('btn', 'btn-round');
+            itemButton.innerText = 'Item';
+            function updateItemButton() {
+                if (spriteStats[worldPalleteInfo.i].item) {
+                    itemButton.classList.add('btn-selected');
+                } else {
+                    itemButton.classList.remove('btn-selected');
+                }
+            }
+            updateItemButton();
+            itemButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].item) {
+                    spriteStats[worldPalleteInfo.i].background = false;
+                    spriteStats[worldPalleteInfo.i].player = false;
+                    spriteStats[worldPalleteInfo.i].solid = false;
+                    spriteStats[worldPalleteInfo.i].harmful = false;
+                    spriteStats[worldPalleteInfo.i].item = true;
+                    spriteStats[worldPalleteInfo.i].target = false;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();       
+                    updateSolidButton();     
+                    updateHarmfulButton();
+                    updateItemButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                } else if (spriteStats[worldPalleteInfo.i].stationary) {
+                    spriteStats[worldPalleteInfo.i].item = false;
+                    updateItemButton();
+                }
+            };
+            bottom.appendChild(itemButton);
+
+            let targetButton = document.createElement('div');
+            targetButton.id = 'targetButton';
+            targetButton.classList.add('btn', 'btn-round');
+            targetButton.innerText = 'Target';
+            function updateTargetButton() {
+                if (spriteStats[worldPalleteInfo.i].target) {
+                    targetButton.classList.add('btn-selected');
+                } else {
+                    targetButton.classList.remove('btn-selected');
+                }
+            }
+            updateTargetButton();
+            targetButton.onclick = () => {
+                if (!spriteStats[worldPalleteInfo.i].item) {
+                    spriteStats[worldPalleteInfo.i].background = false;
+                    spriteStats[worldPalleteInfo.i].player = false;
+                    spriteStats[worldPalleteInfo.i].solid = false;
+                    spriteStats[worldPalleteInfo.i].harmful = false;
+                    spriteStats[worldPalleteInfo.i].stationary = false;
+                    spriteStats[worldPalleteInfo.i].item = false;
+                    spriteStats[worldPalleteInfo.i].target = true;
+
+                    updateBackgroundButton();
+                    updatePlayerButton();       
+                    updateSolidButton();     
+                    updateHarmfulButton();
+                    updateStationaryButton();
+                    updateItemButton();
+                    updateTargetButton();
+
+                    reloadWorldEditor();
+                }
+            };
+            bottom.appendChild(targetButton);
+        }
+
+        function reloadWorldEditor() {
+            for (let r in gridw) {
+                for (let c in gridw[r]) {
+                    if (gridw[r][c].background !== undefined) {
+                        if (!spriteStats[gridw[r][c].background].background) {
+                            gridw[r][c].background = undefined;
+                        }
+                    }
+                    if (gridw[r][c].foreground !== undefined) {
+                        if (spriteStats[gridw[r][c].foreground].background) {
+                            gridw[r][c].foreground = undefined;
+                        }
+                    }
+                    gridw[r][c].ctx.fillStyle = '#fff';
+                    gridw[r][c].ctx.fillRect(0, 0, 48, 48);
+                    if (gridw[r][c].background !== undefined) {
+                        drawSprite(gridw[r][c].ctx, sprites[gridw[r][c].background], false);
+                    }
+                    if (gridw[r][c].foreground !== undefined) {
+                        drawSprite(gridw[r][c].ctx, sprites[gridw[r][c].foreground], false);
+                    }
+                }
+            }
+            save();
+        }
+
+        function switchToWorldEditor() {
+            let worldSection = document.getElementById('worldSection');
+            worldSection.classList.add('hidden');
+            let worldEditor = document.getElementById('worldEditor');
+            worldEditor.classList.remove('hidden');
+            let spritePallete = document.getElementById('spritePallete');
+            spritePallete.classList.remove('hidden');
+        }
+
+        function loadWorld() {
+            let worldSection = document.getElementById('worldSection');
+            worldSection.classList.add('hidden');
+            let editWorldButton = document.createElement('div');
+            editWorldButton.classList.add('btn', 'btn-wide');
+            editWorldButton.innerText = 'Edit World';
+            editWorldButton.onclick = () => {
+                switchToWorldEditor();
+            }
+            worldSection.appendChild(editWorldButton);
+        }
+
+        let actors = [];
+        let removedActors = [];
+        let background;
+        let collectedItems = 0;
+
+        function insertActor(actor) {
+            if (actors.length === 0 || actor.player) {
+                actors.push(actor);
+            } else {
+                let i;
+                for (i = 0; i < actors.length; i++) {
+                    if (!actor.stationary && !actor.target) {
+                        if (actors[i].player) {
+                            actors.splice(i, 0, actor);
+                            break;
+                        }
+                    } else {
+                        if (actors[i].player || (!actors[i].stationary && !actors[i].target)) {
+                            actors.splice(i, 0, actor);
+                            break;
+                        }
+                    }
+                }
+                if (i === actors.length) {
+                    actors.push(actor);
+                }
+            }
+        }
+
+        function resetActors() {
+            while (removedActors.length > 0) {
+                insertActor(removedActors.pop());
+            }
+            for (let actor of actors) {
+                actor.x = actor.xStart;
+                actor.y = actor.yStart;
+                actor.xVel = 0;
+                actor.yVel = 0;
+                actor.falling = false;
+            }
+        }
+
+        function parseWorld() {
+            actors = [];
+            removedActors = [];
+            background = document.createElement('canvas');
+            background.width = 768;
+            background.height = 768;
+            let ctx = background.getContext('2d');
+            ctx.fillStyle = '#fff';
+            ctx.fillRect(0, 0, 768, 768);
+            for (let r in gridw) {
+                for (let c in gridw[r]) {
+                    if (gridw[r][c].foreground !== undefined) {
+                        let canvas = document.createElement('canvas');
+                        canvas.width = 48;
+                        canvas.height = 48;
+                        let ctx = canvas.getContext('2d');
+                        ctx.fillStyle = '#00000000';
+                        ctx.fillRect(0, 0, 48, 48);
+                        drawSprite(ctx, sprites[gridw[r][c].foreground], false);
+
+                        function getHitbox(sprite) {
+                            let xMin = 0;
+                            for (let x = 0; x < 16; x++) {
+                                let hasFilled = false;
+                                for (let y = 0; y < 16; y++) {
+                                    hasFilled = hasFilled || (sprite[y][x].r > -1);
+                                }
+                                if (hasFilled) {
+                                    xMin = x * 3;
+                                    break;
+                                }
+                            }
+                            let xMax = 48;
+                            for (let x = 15; x >= 0; x--) {
+                                let hasFilled = false;
+                                for (let y = 0; y < 16; y++) {
+                                    hasFilled = hasFilled || (sprite[y][x].r > -1);
+                                }
+                                if (hasFilled) {
+                                    xMax = (x + 1) * 3;
+                                    break;
+                                }
+                            }
+                            let yMin = 0;
+                            for (let y = 0; y < 16; y++) {
+                                let hasFilled = false;
+                                for (let x = 0; x < 16; x++) {
+                                    hasFilled = hasFilled || (sprite[y][x].r > -1);
+                                }
+                                if (hasFilled) {
+                                    yMin = y * 3;
+                                    break;
+                                }
+                            }
+                            let yMax = 48;
+                            for (let y = 15; y >= 0; y--) {
+                                let hasFilled = false;
+                                for (let x = 0; x < 16; x++) {
+                                    hasFilled = hasFilled || (sprite[y][x].r > -1);
+                                }
+                                if (hasFilled) {
+                                    yMax = (y + 1) * 3;
+                                    break;
+                                }
+                            }
+                            return {
+                                xMin: xMin,
+                                yMin: yMin,
+                                xMax: xMax,
+                                yMax: yMax
+                            };
+                        }
+
+                        let actor = {
+                            sprite: canvas,
+                            player: spriteStats[gridw[r][c].foreground].player,
+                            solid: spriteStats[gridw[r][c].foreground].solid,
+                            harmful: spriteStats[gridw[r][c].foreground].harmful,
+                            stationary: spriteStats[gridw[r][c].foreground].stationary,
+                            item: spriteStats[gridw[r][c].foreground].item,
+                            target: spriteStats[gridw[r][c].foreground].target,
+                            x: c * 48,
+                            y: r * 48,
+                            xStart: c * 48,
+                            yStart: r * 48,
+                            xVel: 0,
+                            yVel: 0,
+                            falling: false,
+                            hitbox: getHitbox(sprites[gridw[r][c].foreground])
+                        }
+                        insertActor(actor);
+                    }
+                    if (gridw[r][c].background !== undefined) {
+                        drawSprite(ctx, sprites[gridw[r][c].background], false, c * 48, r * 48);
+                    }
+                }
+            }
+        }
+
+        function movePlayer() {
+            //for (let actor of actors) {
+            let actor = actors[actors.length - 1];
+                if (actor.player) {
+                    function intersecting(b) {
+                        let int = false;
+                        for (let playerActor of actors) {
+                            if (playerActor.player) {
+                                int = int || (
+                                    b !== playerActor && 
+                                    (b.hitbox.xMin + b.x) < (playerActor.hitbox.xMax + playerActor.x) &&
+                                    (playerActor.hitbox.xMin + playerActor.x) < (b.hitbox.xMax + b.x) &&
+                                    (b.hitbox.yMin + b.y) < (playerActor.hitbox.yMax + playerActor.y) &&
+                                    (playerActor.hitbox.yMin + playerActor.y) < (b.hitbox.yMax + b.y)
+                                );
+                            }
+                        }
+                        return int;
+                    }
+                    function intersectingSolid() {
+                        let int = actor.x + actor.hitbox.xMin < 0 || actor.x + actor.hitbox.xMax > 768 || actor.y + actor.hitbox.yMin < 0 || actor.y + actor.hitbox.yMax > 768;
+                        for (let b of actors) {
+                            int = int || (b.solid && !b.harmful && intersecting(b));
+                        }
+                        return int;
+                    }
+                    function intersectingHarmful() {
+                        let int = false;
+                        for (let b of actors) {
+                            int = int || (b.harmful && intersecting(b));
+                        }
+                        return int;
+                    }
+                    function intersectingLiquid() {
+                        let int = false;
+                        for (let b of actors) {
+                            int = int || (!b.player && !b.solid && !b.item && !b.target && intersecting(b));
+                        }
+                        return int;
+                    }
+                    function intersectingTarget() {
+                        let int = false;
+                        for (let b of actors) {
+                            int = int || (b.target && intersecting(b));
+                        }
+                        return int;
+                    }
+                    function itemsRemaining() {
+                        let ret = 0;
+                        for (let b of actors) {
+                            if (b.item) {
+                                ret++;
+                            }
+                        }
+                        return ret;
+                    }
+                    function itemsIntersected() {
+                        let ret = [];
+                        for (let b of actors) {
+                            if (b.item && intersecting(b)) {
+                                ret.push(b);
+                            }
+                        }
+                        return ret;
+                    }
+                    function edit(val, func) {
+                        for (let playerActor of actors) {
+                            if (playerActor.player) {
+                                playerActor[val] = func(playerActor[val]);
+                            }
+                        }
+                    }
+                    function moveX () {
+                        if (actor.xVel > 0) {
+                            for (let x = 0; x < actor.xVel; x++) {
+                                edit('x', x => x + 1);
+                                //actor.x++;
+                                if (intersectingSolid()) {
+                                    edit('x', x => x - 1);
+                                    //actor.x--;
+                                    x = actor.xVel;
+                                } else if (intersectingHarmful()) {
+                                    resetActors();
+                                }
+                            }
+                        } else if (actor.xVel < 0) {
+                            for (let x = 0; x > actor.xVel; x--) {
+                                edit('x', x => x - 1);
+                                //actor.x--;
+                                if (intersectingSolid()) {
+                                    edit('x', x => x + 1);
+                                    //actor.x++;
+                                    x = actor.xVel;
+                                } else if (intersectingHarmful()) {
+                                    resetActors();
+                                }
+                            }
+                        }
+                    }
+                    function moveY () {
+                        if (actor.yVel > 0) {
+                            for (let y = 0; y < actor.yVel; y++) {
+                                edit('y', y => y + 1);
+                                //actor.y++;
+                                edit('falling', () => true);
+                                //actor.falling = true;
+                                if (intersectingSolid()) {
+                                    edit('y', y => y - 1);
+                                    //actor.y--;
+                                    y = actor.yVel;
+                                    edit('yVel', () => 0);
+                                    //actor.yVel = 0;
+                                    edit('falling', () => false);
+                                    //actor.falling = false;
+                                } else if (intersectingHarmful()) {
+                                    resetActors();
+                                }
+                            }
+                        } else if (actor.yVel < 0) {
+                            for (let y = 0; y > actor.yVel; y--) {
+                                edit('y', y => y - 1);
+                                //actor.y--;
+                                if (intersectingSolid()) {
+                                    edit('y', y => y + 1);
+                                    //actor.y++;
+                                    y = actor.yVel;
+                                    edit('yVel', () => 0);
+                                    //actor.yVel = 0;
+                                } else if (intersectingHarmful()) {
+                                    resetActors();
+                                }
+                            }
+                        }
+                    }
+                    edit('yVel', yVel => yVel + 1);
+                    //actor.yVel++;
+                    edit('xVel', () => 0);
+                    //actor.xVel = 0;
+                    if (isKeyDown('a')) {
+                        edit('xVel', (xVel) => xVel - 6);
+                        //actor.xVel -= 6;
+                        if (intersectingLiquid()) {
+                            edit('xVel', (xVel) => xVel + 3);
+                            //actor.xVel += 3;
+                        }
+                    }
+                    if (isKeyDown('d')) {
+                        edit('xVel', (xVel) => xVel + 6);
+                        //actor.xVel += 6;
+                        if (intersectingLiquid()) {
+                            edit('xVel', (xVel) => xVel - 3);
+                            //actor.xVel -= 3;
+                        }
+                    }
+                    if (isKeyDown('w')) {
+                        if (!actor.falling) {
+                            edit('yVel', () => -20);
+                            //actor.yVel = -20;
+                            edit('falling', () => true);
+                            //actor.falling = true;
+                        }
+                        if (intersectingLiquid()) {
+                            edit('yVel', () => -3);
+                            //actor.yVel = -3;
+                            edit('falling', () => false);
+                            //actor.falling = false;
+                        }
+                    } else {
+                        if (intersectingLiquid()) {
+                            edit('yVel', () => 3);
+                            //actor.yVel = 3;
+                            edit('falling', () => false);
+                            //actor.falling = false;
+                        }
+                    }
+                    if (intersectingHarmful()) {
+                        resetActors();
+                    }
+                    for (let b of itemsIntersected()) {
+                        removedActors.push(b);
+                        actors = actors.filter(function (value, _, _) { return value !== b });
+                        collectedItems++;
+                    }
+                    if (intersectingTarget() && itemsRemaining() === 0) {
+                        switchToWorldEditor();
+                    }
+                    moveX();
+                    moveY();
+                }
+            //}
+        }
+
+        function act() {
+            for (let actor of actors) {
+                if (!actor.player && !actor.stationary && !actor.target) {
+                    function intersecting(b) {
+                        return b !== actor &&
+                            (b.hitbox.xMin + b.x) < (actor.hitbox.xMax + actor.x) &&
+                            (actor.hitbox.xMin + actor.x) < (b.hitbox.xMax + b.x) &&
+                            (b.hitbox.yMin + b.y) < (actor.hitbox.yMax + actor.y) &&
+                            (actor.hitbox.yMin + actor.y) < (b.hitbox.yMax + b.y);
+                    }
+                    function intersectingSolid() {
+                        let int = actor.x + actor.hitbox.xMin < 0 || actor.x + actor.hitbox.xMax > 768 || actor.y + actor.hitbox.yMin < 0 || actor.y + actor.hitbox.yMax > 768;
+                        for (let b of actors) {
+                            int = int || (b.solid && !b.harmful && intersecting(b));
+                        }
+                        return int;
+                    }
+                    function moveX () {
+                        if (actor.xVel > 0) {
+                            for (let x = 0; x < actor.xVel; x++) {
+                                actor.x++;
+                                if (intersectingSolid()) {
+                                    actor.falling = true;
+                                    actor.x--;
+                                    x = actor.xVel;
+                                }
+                            }
+                        } else if (actor.xVel < 0) {
+                            for (let x = 0; x > actor.xVel; x--) {
+                                actor.x--;
+                                if (intersectingSolid()) {
+                                    actor.falling = false;
+                                    actor.x++;
+                                    x = actor.xVel;
+                                }
+                            }
+                        }
+                    }
+                    let moveY = function () { }
+                    if (actor.solid || actor.item) {
+                        moveY = function () {
+                            if (actor.yVel > 0) {
+                                for (let y = 0; y < actor.yVel; y++) {
+                                    actor.y++;
+                                    if (intersectingSolid()) {
+                                        actor.y--;
+                                        y = actor.yVel;
+                                        actor.yVel = 0;
+                                    }
+                                }
+                            } else if (actor.yVel < 0) {
+                                for (let y = 0; y > actor.yVel; y--) {
+                                    actor.y--;
+                                    if (intersectingSolid()) {
+                                        actor.y++;
+                                        y = actor.yVel;
+                                        actor.yVel = 0;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    if (actor.falling) {
+                        actor.xVel = -3;
+                    } else {
+                        actor.xVel = 3;
+                    }
+                    actor.yVel++;
+                    moveX();
+                    moveY();
+                }
+            }
+            if (actors.length > 0) {
+                movePlayer();
+            }
+            drawWorld();
+        }
+
+        function drawWorld() {
+            let canvas = document.getElementById('world');
+            let ctx = canvas.getContext('2d');
+
+            ctx.drawImage(background, 0, 0);
+
+            for (let actor of actors) {
+                ctx.drawImage(actor.sprite, actor.x, actor.y);
+            }
+            let worldSection = document.getElementById('worldSection');
+            if (!worldSection.classList.contains('hidden')) {
+                window.requestAnimationFrame(act);
+            }
+        }
+
+        function toBase64(n) {
+            let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
+            if (n === 0) {
+                return 'A';
+            }
+            let s = [];
+            while (n > 0) {
+              s = [chars[n % 64], ...s];
+              n = Math.floor(n / 64);
+            }
+            return s.join('');
+        }
+
+        function fromBase64(str) {
+            let chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/'.split('');
+            return str.split('').reverse().reduce((prev, curr, i) => prev + (chars.indexOf(curr) * (64 ** i)), 0);
+        }
+
+        function getCode() {
+            let ret = '';
+            for (let s of sprites) {
+                for (let r in s) {
+                    for (let c in s[r]) {
+                        let n = (s[r][c].r + 1) * 289 + (s[r][c].g + 1) * 17 + (s[r][c].b + 1);
+                        let str = toBase64(n);
+                        while (str.length < 3) {
+                            str = 'A' + str;
+                        }
+                        ret = ret + str;
+                    }
+                }
+            }
+            for (let s of spriteStats) {
+                let n = 0;
+                if (s.background) n += 1;
+                if (s.player) n += 2;
+                if (s.solid) n += 4;
+                if (s.harmful) n += 8;
+                if (s.stationary) n += 16;
+                if (s.item) n += 32;
+                if (s.target) n += 64;
+                let str = toBase64(n);
+                while (str.length < 2) {
+                    str = 'A' + str;
+                }
+                ret = ret + str;
+            }
+            for (let r in gridw) {
+                for (let c in gridw[r]) {
+                    let back = 0;
+                    if (gridw[r][c].background !== undefined) back = gridw[r][c].background + 1;
+                    let fore = 0;
+                    if (gridw[r][c].foreground !== undefined) fore = gridw[r][c].foreground + 1;
+                    let n = back * 17 + fore;
+                    let str = toBase64(n);
+                    while (str.length < 2) {
+                        str = 'A' + str;
+                    }
+                    ret = ret + str;
+                }
+            }
+            return ret;
+        }
+
+        function parseCode(str) {
+            for (let i in sprites) {
+                for (let r in sprites[i]) {
+                    for (let c in sprites[i][r]) {
+                        let ind = i * 256 * 3 + r * 16 * 3 + c * 3;
+                        let sub = str.substring(ind, ind + 3);
+                        while (sub.length < 3) sub += 'A';
+                        let n = fromBase64(sub);
+                        let red = Math.trunc(n / 289) % 17 - 1;
+                        let green = Math.trunc(n / 17) % 17 - 1;
+                        let blue = n % 17 - 1;
+                        sprites[i][r][c] = new Color(red, green, blue);
+                    }
+                }
+                let canvas = document.getElementById('canvas_' + i);
+                let ctx = canvas.getContext('2d');
+                drawSprite(ctx, sprites[i], true);
+            }
+            let canvas = document.getElementById('previewSprite');
+            let ctx = canvas.getContext('2d');
+            drawSprite(ctx, sprites[worldPalleteInfo.i], true)
+            for (let i in spriteStats) {
+                let ind = 12288 + i * 2;
+                let sub = str.substring(ind, ind + 2);
+                while (sub.length < 2) sub += 'A';
+                let n = fromBase64(sub);
+                spriteStats[i].background = (n % 2 == 1);
+                spriteStats[i].player = (Math.trunc(n / 2) % 2 == 1);
+                spriteStats[i].solid = (Math.trunc(n / 4) % 2 == 1);
+                spriteStats[i].harmful = (Math.trunc(n / 8) % 2 == 1);
+                spriteStats[i].stationary = (Math.trunc(n / 16) % 2 == 1);
+                spriteStats[i].item = (Math.trunc(n / 32) % 2 == 1);
+                spriteStats[i].target = (Math.trunc(n / 64) % 2 == 1);
+            }
+            let backgroundButton = document.getElementById('backgroundButton');
+            if (spriteStats[worldPalleteInfo.i].background) {
+                backgroundButton.classList.add('btn-selected');
+            } else {
+                backgroundButton.classList.remove('btn-selected');
+            }
+            let playerButton = document.getElementById('playerButton');
+            if (spriteStats[worldPalleteInfo.i].player) {
+                playerButton.classList.add('btn-selected');
+            } else {
+                playerButton.classList.remove('btn-selected');
+            }
+            let solidButton = document.getElementById('solidButton');
+            if (spriteStats[worldPalleteInfo.i].solid) {
+                solidButton.classList.add('btn-selected');
+            } else {
+                solidButton.classList.remove('btn-selected');
+            }
+            let harmfulButton = document.getElementById('harmfulButton');
+            if (spriteStats[worldPalleteInfo.i].harmful) {
+                harmfulButton.classList.add('btn-selected');
+            } else {
+                harmfulButton.classList.remove('btn-selected');
+            }
+            let stationaryButton = document.getElementById('stationaryButton');
+            if (spriteStats[worldPalleteInfo.i].stationary) {
+                stationaryButton.classList.add('btn-selected');
+            } else {
+                stationaryButton.classList.remove('btn-selected');
+            }
+            let itemButton = document.getElementById('itemButton');
+            if (spriteStats[worldPalleteInfo.i].item) {
+                itemButton.classList.add('btn-selected');
+            } else {
+                itemButton.classList.remove('btn-selected');
+            }
+            let targetButton = document.getElementById('targetButton');
+            if (spriteStats[worldPalleteInfo.i].target) {
+                targetButton.classList.add('btn-selected');
+            } else {
+                targetButton.classList.remove('btn-selected');
+            }
+            for (let r in gridw) {
+                for (let c in gridw[r]) {
+                    let ind = 12320 + r * 16 * 2 + c * 2;
+                    let sub = str.substring(ind, ind + 2);
+                    while (sub.length < 2) sub += 'A';
+                    let n = fromBase64(sub);
+                    let back = Math.trunc(n / 17) % 17;
+                    let fore = n % 17;
+                    if (back === 0) {
+                        gridw[r][c].background = undefined;
+                    } else {
+                        gridw[r][c].background = back - 1;
+                    }
+                    if (fore === 0) {
+                        gridw[r][c].foreground = undefined;
+                    } else {
+                        gridw[r][c].foreground = fore - 1;
+                    }
+                    gridw[r][c].ctx.fillStyle = '#fff';
+                    gridw[r][c].ctx.fillRect(0, 0, 48, 48);
+                    if (gridw[r][c].background !== undefined) {
+                        drawSprite(gridw[r][c].ctx, sprites[gridw[r][c].background], false);
+                    }
+                    if (gridw[r][c].foreground !== undefined) {
+                        drawSprite(gridw[r][c].ctx, sprites[gridw[r][c].foreground], false);
+                    }
+                }
+            }
+            let currCan = document.getElementById('canvas_' + worldPalleteInfo.i);
+            currCan.onclick();
+            save();
+        }
+
+        function loadIO() {
+            let io = document.getElementById('io');
+            let label = document.createElement('label');
+            label.innerText = 'Input Code:';
+            io.appendChild(label);
+            let input = document.createElement('input');
+            input.setAttribute('input', 'text');
+            input.addEventListener('keyup', (event) => {
+                if (event.keyCode === 13) {
+                    event.preventDefault();
+                    if (confirm('Are you sure you want to load a new code?')) {
+                        parseCode(input.value);
+                        input.value = '';
+                    }
+                }
+            });
+            io.appendChild(input);
+            let getcode = document.createElement('div');
+            getcode.classList.add('btn', 'btn-wide');
+            getcode.innerText = 'Get Current Code';
+            getcode.onclick = () => {
+                let c = document.createElement('input');
+                c.setAttribute('input', 'text');
+                io.appendChild(c);
+                c.value = getCode();
+                c.select();
+                c.setSelectionRange(0, 99999);
+                document.execCommand('copy');
+                io.removeChild(c);
+                alert('Code copied to clipboard');
+            }
+            io.appendChild(getcode);
+            let suggested = document.createElement('label');
+            suggested.innerText = 'Use a Preset Code';
+            suggested.classList.add('btn', 'btn-wide');
+            suggested.onclick = () => {
+                if (confirm('Are you sure you want to load a new code?')) {
+                    parseCode('BKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABIiBIiBIiBIiBIiBIiAAAAAAAAAAAABIiBIiBIiBIiBIiBIiBKZBKZBKZBJ3AAAAAAAAAAAAAAABIiBKZBKZBKZBKZBKZBKZBKZBKZBJ3AAAAAAAAAAAAAAABIiBKZBKZBKZBKZBKZBKZBKZBKZBKZBJ3AAAAAAAAABIiBIiBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBIiBIiBIiBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZBKZAAAAAAAAAAAAAAAA0nBMhBMhBMhBMhBMhAAAAAAAAAAAAAAAAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhA0nActBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhActAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAAAAA0nBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhBMhAAAAAAA0nActActActActBMhBMhBMhBMhBMhActActActActAAAAAAAAAAAAAAAAAAA0nActActActActActAAAAAAAAAAAAAAAAAAAeCAeCAeCAAAAAAAAAAAAAAAAAAAAAAAAAeCAeCAeCAAAAAAAeCA2BA2BAeCA2BA2BA2BA2BA2BA2BAeCA2BA2BAeCAAAAAAAeCA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BAeCAAAAAAAeCA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BAeCAAAAAAAeCA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BAeCAAAAAAAeCA2BA2BA2BA2BA2BA2BA2BAHdAHdAHdA2BA2BAeCAAAAAAAeCA2BA2BAHdAHdA2BA2BA2BA2BA2BA2BA2BA2BAeCAAAAeCA2BA2BA2BAHdAHdA2BA2BA2BA2BA2BA2BA2BA2BA2BAeCA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BAeCAeCAeCAeCAeCAeCA2BA2BA2BA2BA2BA2BAeCAeCAeCAeCAeCAeCAeCAeCAeCAeCA2BA2BA2BA2BA2BAeCAeCAeCAeCAeCAeCAeCAeCAeCAeCAeCA2BA2BA2BA2BA2BA2BAeCAeCAeCAeCAeCAeCBLMBLMBLMBLMA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BBLMBLMBLMA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BA2BBLMA2BA2BA2BA2BAAAAAAAAAAAAAAAAcyAcyAcyAcyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAA0xAcyAIyA0xA0xAIyAcyA0xAAAAAAAAAAAAAAAAAAAAAAAAA0xAcyAIyA0xA0xAIyAcyA0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyA0xA0xA0xA0xAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAcyAcyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0xA0xAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAcyAIyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAIyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAIyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAIyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAIyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAIyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAIyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAIyAIyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAcyAcyAAAAAAAAAAAAAAAAAAAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAGZAHdAHdAHdAHdAHdAHdAHdAGZAHdAHdAHdAGZAHdAGZAHdAHdAHdAHdAGZAHdAHdAGZAGZAHdAGZAGZAHdAHdAGZAHdAGZAGZAHdAHdAHdAGZAGZAHdAqSAqSAqSAqSAGZAHdAHdAqSAqSAqSAqSAGZAqSAqSAqSAqSAqSAqSAqSAqSAqSAHdAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAGZAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAX/AqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AFfAFfAFfAG5AG5AG5AG5AFfAFfAG5AG5AG5AFfAFfAG5AG5AG5AG5AFfAFfAFfAFfAFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AFfAFfAFfAG5AFfAFfAG5AG5AG5AG5AG5AFfAFfAFfAG5AG5AG5AG5AFfAFfAFfAG5AG5AG5AG5AFfAFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAG5AG5AG5AG5AG5AG5AG5AAAAAAAAAAAAAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AFfAFfAFfAG5AG5AG5AG5AFfAFfAG5AG5AG5AFfAFfAG5AG5AG5AG5AFfAFfAFfAFfAFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAFfAG5AFfAFfAFfAG5AFfAFfAG5AG5AG5AG5AG5AFfAFfAFfAG5AG5AG5AG5AFfAFfAFfAG5AG5AG5AG5AFfAFfAFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AFfAG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AG5AAAAAAAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAAAAHdAHdAGZAHdAHdAHdAHdAHdAHdAHdAGZAHdAHdAHdAGZAHdAGZAHdAHdAHdAHdAGZAHdAHdAGZAGZAHdAGZAGZAHdAHdAGZAHdAGZAGZAHdAHdAHdAGZAGZAHdAqSAqSAqSAqSAGZAHdAHdAqSAqSAqSAqSAGZAqSAqSAqSAqSAqSAqSAqSAqSAqSAHdAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAGZAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAX/AqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMmAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMmBMmBMmAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMmAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMrAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMrAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMrBMrBMrBMrBMrAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMrAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdBMrAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdA2LAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdA2LA2LA2LAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdA2LAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAbdAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAX/AqSAqSArLAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAX/AqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAEzBMwAEzBMwAEzBMwAEzAlvAlvBMwAEzBMwAEzBMwAEzBMwBMwAEzBMwAEzBMwAEzBMwAg9AlvAEzBMwAEzBMwAEzBMwAEzAEzBMwAEzBMwAEzBMwAEzAg9AlvBMwAEzBMwAEzBMwAEzBMwBMwAEzBMwAEzBMwAEzBMwAg9AlvAEzBMwAEzBMwAEzBMwAEzAEzBMwAEzBMwAEzBMwAEzAg9AlvBMwAEzBMwAEzBMwAEzBMwBMwAEzBMwAEzBMwAEzBMwAg9AlvAEzBMwAEzBMwAEzBMwAEzAEzBMwAEzBMwAEzBMwAEzAg9AlvBMwAEzBMwAEzBMwAEzBMwBMwAEzBMwAEzBMwAEzBMwAg9AlvAEzBMwAEzBMwAEzBMwAEzAEzBMwAEzBMwAEzBMwAEzAg9AlvBMwAEzBMwAEzBMwAEzBMwAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAg9AlvAAAAAAAAAAAAAAAAAAAAAAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAAAAAAAHdAHdAHdAGZAHdAHdAHdAHdAHdAHdAHdAGZAHdAHdAHdAAAAHdAGZAHdAHdAHdAHdAGZAHdAHdAGZAGZAHdAGZAGZAHdAHdAGZAHdAGZAGZAHdAHdAHdAGZAGZAHdAqSAqSAqSAqSAGZAHdAHdAqSAqSAqSAqSAGZAqSAqSAqSAqSAqSAqSAqSAqSAqSAHdAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAGZAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAX/AqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAAAAAAAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAHdAAAAAAAAAAHdAHdAGZAHdAHdAHdAHdAHdAHdAHdAGZAHdAHdAHdAAAAHdAGZAHdAHdAHdAHdAGZAHdAHdAGZAGZAHdAGZAGZAHdAHdAGZAHdAGZAGZAHdAHdAHdAGZAGZAHdAqSAqSAqSAqSAGZAHdAHdAqSAqSAqSAqSAGZAqSAqSAqSAqSAqSAqSAqSAqSAqSAHdAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAGZAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSArLAqSAqSAqSAqSAX/AqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAX/AqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSArLAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAqSAqSAqSAX/AqSAqSAqSAYAYAgAMACAUAQAQAUABABABAUBAAUAUC5DMDMDMDMDMDMC7CqDMCqCqDMCqCqCzC3C7CqCqDMCqDMDMCqDMDMCqCqDMCqC3C3CqDMC7DMDMC7DMDMC7DMDMDMDMDMDIC3CqDMDMC7DMC7C7DMDMDMDMDMDMDMC3C3DMCqDMDMDMDMDMC7DMDMC7C7CqC7C3DZDMC7CqDMDMC7C7DaDMDMDMDMDMC7DIDIC7DMDMC/DMDMDMDcDMDMDMCqDMDMC3C3DMDMC7CzCwDSDSC3DSDBDSDbDMCqC3C3C7C7C7CqDMDMDMDMDMDMDMCqC7CqDZC3CqC7DMDMC7DMDMDMC7DMCqDMDMDMDZC3CqDMDMC7DMDMDMDMC7DMDMDVCwCwC3C3C7DMDMDMC7CqDMC7DMC7C7DMDMCqC3C3DMDMCqC7C7DMDPC7DMDMC7C7CqDMC3C3CqC7DMDcDUDUCyCyCyDUDUDLC9CsC3C3DRDMCqC3CxCxCxCxCxCxDTDZCrCrC3C3DSDSCwC3C3DIDIDIC3C3C3C3C3C3C3');
+                }                
+            }
+            io.appendChild(suggested);
+
+            let resetCookies = document.createElement('div');
+            resetCookies.innerText = 'Reset Cookies';
+            resetCookies.classList.add('btn', 'btn-wide');
+            resetCookies.onclick = () => {
+                if (confirm('Are you sure you want to reset everything? (This cannot be undone)')) {
+                    setCookie('code', '');
+                    location.reload();
+                }
+            }
+            io.appendChild(resetCookies);
+        }
+
+        // 'borrowed' encoder/decoder from user Matthew Crumley at https://stackoverflow.com/questions/294297/javascript-implementation-of-gzip
+
+        function lzw_encode(s) {
+            var dict = {};
+            var data = (s + "").split("");
+            var out = [];
+            var currChar;
+            var phrase = data[0];
+            var code = 256;
+            for (var i=1; i<data.length; i++) {
+                currChar=data[i];
+                if (dict[phrase + currChar] != null) {
+                    phrase += currChar;
+                }
+                else {
+                    out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+                    dict[phrase + currChar] = code;
+                    code++;
+                    phrase=currChar;
+                }
+            }
+            out.push(phrase.length > 1 ? dict[phrase] : phrase.charCodeAt(0));
+            for (var i=0; i<out.length; i++) {
+                out[i] = String.fromCharCode(out[i]);
+            }
+            return out.join("");
+        }
+
+        function lzw_decode(s) {
+            var dict = {};
+            var data = (s + "").split("");
+            var currChar = data[0];
+            var oldPhrase = currChar;
+            var out = [currChar];
+            var code = 256;
+            var phrase;
+            for (var i=1; i<data.length; i++) {
+                var currCode = data[i].charCodeAt(0);
+                if (currCode < 256) {
+                    phrase = data[i];
+                }
+                else {
+                   phrase = dict[currCode] ? dict[currCode] : (oldPhrase + currChar);
+                }
+                out.push(phrase);
+                currChar = phrase.charAt(0);
+                dict[code] = oldPhrase + currChar;
+                code++;
+                oldPhrase = phrase;
+            }
+            return out.join("");
+        }
+
+        function setCookie(name, value) {
+            let updatedCookie = encodeURIComponent(name) + '=' + value;
+            document.cookie = updatedCookie;
+        }
+
+        function save() {
+            let code = getCode();
+            setCookie('code', lzw_encode(code));
+        }
+
+        function load() {
+            loadSpriteGrid();
+            loadEditorPallete();
+            loadSpritePallete();
+            loadWorldEditor();
+            loadWorld();
+            loadIO();
+
+            let matches = document.cookie.match(new RegExp(
+                "(?:^|; )" + 'code'.replace(/([\.$?*|{}\(\)\[\]\\\/\+^])/g, '\\$1') + "=([^;]*)"
+            ));
+            if (matches) {
+                let code = lzw_decode(decodeURIComponent(matches[1]));
+                if (code !== '') {
+                    parseCode(code);
+                }
+            }
+
+            //parseCode('AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAr6Ar6Ar6Ar6Ar6Ar6AAAAAAAAAAAAAAAAAAAAAAAAAAAAr6Ar6Ar6Ar6Ar6Ar6Ar6Ar6AAAAAAAAAAAAAAAAAAAAAAAAAhIAr6Ar6Ar6Ar6Ar6Ar6AhIAAAAAAAAAAAAAAAAAAAAAAhIAhIAhIAhIAr6Ar6AhIAhIAhIAhIAAAAAAAAAAAAAAAAAAAhIAhIAhIAOGAhIAhIAOGAhIAhIAhIAAAAAAAAAAAAAAAAXZAr6Ar6AhIAOGAhIAhIAOGAhIAr6Ar6AAAAAAAAAAAAAAAAOGAXZAr6Ar6AhIAhIAhIAhIAr6Ar6AAAAAAAAAAAAAAAAAAAAAAOGAXZAr6Ar6Ar6Ar6Ar6Ar6AAAAAAAAAAAAAAAAAAAAAAAAAAAAqkAqkAqkA9tA9tA9tAr6AqkAAAAAAAAAAAAAAAAAAAAABC1Ar6A9tAqkA9tA9tA9tA9tAr6BC1AAAAAAAAAAAAAAAAAAAr6BC1A9tAqkA9tA9tA9tA9tBC1Ar6AAAAAAAAAAAAAAAAAAAAAAAAAqkAqkAqkAqkAqkAqkAXZAAAAAAAAAAAAAAAAAAAAAAAAAAAAr6A9tA9tA9tA9tAr6AOGAXZAAAAAAAAAAAAAAAAAAAAAAAAAqkAr6AAAAAAAr6AqkAAAAOGAXZAAAAAAAAAAAAAAAAAAAr6BC1BC1AAAAAABC1BC1Ar6AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAX/ALMAHdAHdAHdAHdALMALMALMALMALMAX/AAAAAAAAAAX/AX/AHdAHdAHdAIhAIhAIhAIhAIhAHdAHdAX/AX/AAAAAAAX/AX/ALMAIhAIhAIhAIhAIhAIhAIhAIhAHdAX/AX/AAAAAAAX/AX/ALMAHdAHdAHdAHdAHdAIhAIhAHdALMAX/AX/AAAAAAAAAAX/ALMALMALMALMALMAHdAHdAHdAHdALMAX/AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA5OA5OA5OA5OA9/A9/A9/A9/A0bA9/A9/A9/A9/A9/A9/A0bA9/A9/A9/A9/A5OA9/A9/A9/A0bA9/A9/A5OA5OA5OA9/A0bA9/A9/A9/A9/A9/A9/A9/A9/A0bA9/A9/A9/A5OA9/A9/A0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA9/A9/A9/A9/A0bA9/A9/A5OA5OA9/A9/A9/A9/A0bA9/A9/A9/A5OA9/A9/A0bA9/A9/A9/A9/A5OA5OA9/A9/A0bA9/A9/A9/A9/A9/A9/A0bA9/A9/A9/A9/A9/A9/A9/A9/A0bA9/A9/A0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA9/A9/A9/A9/A9/A9/A9/A9/A0bA9/A9/A9/A9/A5OA9/A0bA9/A9/A5OA5OA5OA5OA5OA9/A0bA9/A9/A9/A5OA9/A9/A0bA9/A9/A5OA5OA5OA5OA9/A9/A0bA9/A9/A5OA9/A9/A9/A0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA9/A9/A9/A9/A0bA9/A9/A9/A9/A9/A9/A9/A9/A0bA9/A5OA5OA5OA9/A9/A0bA9/A9/A5OA5OA9/A5OA5OA9/A0bA9/A9/A9/A5OA9/A9/A0bA9/A9/A9/A9/A9/A9/A9/A9/A0bA9/A9/A+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHVBHVBHVBHVBHVBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHVBHVBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHVBHVBHVBHmBHmBHmBHVBHVBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHVBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHVBHVBHVBHVBHVBHVBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHVBHVBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHVBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHVBHVBHVBHVBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHVBHVBHVBHVBHmBHmBHmAVEAV3AV3AV3AV3AWZAWZAWZAWZAWZAWZAWZAWZAWZAV3AV3A0bAVEAVEAVEAV3AV3AWZAWZAWZAWZAWZAWZAWZAV3AV3AVEA0bA9/A5OAVEAVEAV3AV3AV3AWZAV3AV3AV3AWZAV3AVEAVEA0bA9/A9/A9/AVEAVEAVEAV3AV3AV3AVEAV3AVEAVEAVEA9/A0bA0bA0bA0bA0bAVEAVEAVEAVEAV3AVEA0bA0bAVEAVEA0bA5OA5OA9/A9/A0bA9/A9/A9/AVEAV3AVEA5OA5OA0bAVEA9/A9/A5OA5OA9/A0bA9/A9/A9/A9/AVEAVEA5OA9/A0bA9/A9/A9/A9/A9/A9/A0bA9/A9/A9/A9/A9/AVEA9/A9/A0bA9/A9/A0bA0bA0bA0bA0bA0bA0bA0bA0bA0bAVEA0bA0bA0bA0bA0bA0bA9/A5OA5OA9/A9/A9/A9/A9/A0bAVEA9/A9/A5OA9/A9/A0bA9/A9/A5OA5OA5OA9/A9/A9/A0bA9/A9/A5OA5OA5OA9/A0bA9/A9/A9/A5OA9/A9/A9/A9/A0bA9/A9/A9/A9/A9/A5OA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA0bA9/A9/A9/A9/A0bA9/A9/A9/A9/A9/A9/A9/A9/A0bA9/A9/A5OA5OA5OA9/A0bA9/A9/A9/A5OA5OA5OA5OA9/A0bA9/A9/A9/A9/A9/A9/A0bA9/A9/A9/A9/A5OA5OA5OA9/A0bA9/A9/A+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmAVDAVDBHmBHmBHmBHmBHmBHVBHVBHVBHmBHmBHmBHmA+CBHmBHmAVDBHmBHmBHmBHmBHmBHmBHVBHVBHmBHmBHmBHmA+CBHmBHmBHmAVDBHVBHVBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHVBHVBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHVBHVBHVBHVBHVA+CBHmBHmBHmBHmBHmBHmBHmA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CA+CAVDAVDAVDAVDAVDBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmAVDAVDAVDBHmBHmBHmBHmBHmBHmBHVBHVBHVBHVBHmA+CBHmBHmBHmBHmAVDBHmBHmBHmBHmBHVBHmBHmBHmBHmBHmA+CBHVBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHVBHVBHVBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHVBHVBHVBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmA+CBHmBHmBHmBHmBHmBHmBHmBHmBHmBHmBHVBHVBHVBHmBHmAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOGAOGAOGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOGAOGAleAleAcLAOGAAAAAAAAAAAAAAAAAAAAAAAAAOGAOGAuPAuPA4qAleAcLAOGAAAAAAAAAAAAAAAAAAAOGAOGA4qBG+A4qAuPA4qAleAleAcLAOGAAAAAAAAAAOGAOGAk8AuPAuPBG+BG+BG+BG+A4qAleAcLAOGAAAAAAAOGBG+A4qAk8AuPAuPBG+BG+AuPBG+A4qAleAcLAOGAAAAAAAOGAuPBG+A4qAk8BG+BG+Ak8AuPAuPA4qAleAcLAOGAAAAAAAAAAOGAOGBG+BG+BG+BG+Ak8AuPAuPA4qAleAcLAOGAAAAAAAAAAAAAAAAOGAOGA4qBG+A4qAk8A4qAleAleAcLAOGAAAAAAAAAAAAAAAAAAAAAAOGAOGA4qBG+A4qAleAcLAOGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOGAOGAleAleAcLAOGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAOGAOGAOGAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyAcyAcyAcyAcyAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAcyArLArLArLArLArLAcyAAAAAAAAAAAAAAAAAAAAAAAAAcyAcyArLBMwBMwBGQBGQBGQAAAAAAAAAAAAAAAAAAAAAAAAAcyArLBMwBMwBMwArLArLArLAAAAAAAAAAAAAcyAcyArLArLArLArLArLBMwAEzArLAEzArLAAAAAAAAAAcyArLArLArLBMwBMwArLAcyAcyArLAEzArLAEzAAAAAAAAAAcyBMwBMwBMwBMwBMwBMwAcyAAAAcyAcyAcyAcyAAAAAAAAAAcyArLBMwBMwBMwBMwBMwAcyAAAAAAAAAAAAAAAAAAAAAAcyAcyArLArLBMwBMwBMwArLAAAAAAAAAAAAAAAAAAAAAAcyAcyAcyAAAAcyAcyArLArLArLAcyAAAAAAAAAAAAAAAAAAAcyArLAAAAAAAAAAAAAAAAAAAcyAcyAAAAAAAAAAAAAAAAcyArLBMwArLAAAAAAAAAAAAAAAAcyAcyAcyAAAAAAAAAAAAArLBMwBMwBMwArLAAAAAAAAAAAAAAAAcyArLAcyAAAAAAAAAArLArLAAAAAAAcyAcyAAAAAAAAAAAAArLBMwBMwAcyAAAAAAAcyAAAAAAAAAAAAAcyAcyAAAAAAAAAAcyAAAAAAAcyAcyAAAAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAFCAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpAkpBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBIxBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWBLWAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAlvAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAEzAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyAcyA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xA0xACBAAUABAYABAwAIABABABABABABABABBEBEBmBEBEBEBEBEBEBEBEBEBEBEBEBEBEBEBmBmBmBEBEBEBEBEBEBEBEBEBEBGBEBEBEBEBmBEBEBEBEBEBEBHBHBHBHBHBLBEBEBEBEBEBEBEBEBEBEBEBEBEBEBEBHBHBEBEBEBEBEBEBEBEBEBEBEBEBEBEBHBHBEBEBEBEBHBEBHBEBEBEBEBmBEBEBHBHBJBJBJBJBHBEBHBEBEBEBEBmBmBEBHBHBHBHBpBpBHBEBHBHBEBEBEBEBmBEBHBEBEBEBmBEBmBEBEBHBEBEBEBEBEBEBHBEBEBEBEBEBmBmBEBHBEBEBEBEBEBEBHBEBHBMBEBEBEBEBLBHBHBEBEBEBEBEBEBEBHBHBHBHBHBHBHBHBHBHBEBEBEBEBEBEBEBmBEBEBEBEBEBEBEBEBEBEBEBEBEBEBEBEBmBEBEBEBEBEBEBEBEBHBJBJBFBEBHBHBHBHBHBHBMBEBEBEBEBHBHBHBHBHBHBHBHBHBHBHBHBHBHBHBHBHBHBH');
+        }
+
+    </script>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: 'Courier New';
+        }
+        body {
+            position: absolute;
+            padding: 1em;
+        }
+        body > * {
+            position: relative;
+            display: inline-block;
+        }
+        table {
+            display: inline;
+            border-spacing: 0;
+        }
+        tbody {
+            outline: 1px solid black;
+        }
+        tr {
+            display: block;
+        }
+        #world {
+            outline: 1px solid black;
+        }
+        td > * {
+            display: block;
+        }
+        .btn.btn-round {
+            border-radius: 3px;
+            background-color: #7CF;
+            font-weight: bold;
+            width: 5em;
+            height: 3em;
+            text-align: center;
+            line-height: 3em;
+            margin-top: 1em;
+        }
+        .btn.btn-wide {
+            border-radius: 3px;
+            background-color: #7CF;
+            font-weight: bold;
+            width: 10em;
+            height: 3em;
+            text-align: center;
+            line-height: 3em;
+            margin-top: 1em;
+        }
+        .btn.btn-selected {
+            box-shadow: inset 0px 0px 0px 2px #367;
+        }
+        .btn:hover {
+            filter: brightness(80%);
+        }
+        .hidden {
+            display: none;
+        }
+        #spriteEditor > * {
+            display: block;
+        }
+        #editorPallete {
+            display: inline-block;
+        }
+        #editorPallete div * {
+            display: block;
+        }
+        #editorPallete > * {
+            display: inline-block;
+            margin-right: 1em;
+            vertical-align: top;
+            margin-top: 1em;
+        }
+        #spritePallete {
+            position: absolute;
+            display: inline-block;
+            outline: 1px solid black;
+            margin-left: 1em;
+        }
+        #spritePallete.hidden {
+            display: none;
+        }
+        #spritePallete * {
+            display: block;
+        }
+        #previewColor {
+            outline: 1px solid black;
+        }
+        #previewSprite {
+            outline: 1px solid black;
+        }
+        #currentSprite {
+            outline: 1px solid black;
+        }
+        #worldPallete > div {
+            display: inline-block;
+            margin-right: 1em;
+            vertical-align: top;
+            margin-top: 1em;
+        }
+        .inline-block > * {
+            display: inline-block;
+            margin-right: 1em;
+        }
+        #io {
+            display: block;
+            margin-top: 2em;
+        }
+    </style>
+</head>
+<body onload="load()" onkeydown="keyPressed(event)" onkeyup="keyReleased(event)">
+    <section id="spriteEditor">
+        <table id="spriteGrid"></table>
+        <div id="editorPallete"></div>
+    </section>
+    <section id="worldEditor">
+        <table id="worldGrid"></table>
+        <div id="worldPallete"></div>
+    </section>
+    <section id="worldSection">
+        <canvas id="world" width="768" height="768"></canvas>
+    </section>
+    <section id="spritePallete"></section>
+    <section id="io"></section>
+</body>
+</html>
