@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Times Tables</title>
+    <script>
+
+        let x = 1;
+        while (x === 1) {
+            x = Math.trunc(Math.pow(1000, Math.random()));
+        }
+        let y = x + 1;
+        while (y % x === 1) {
+            y = Math.trunc(Math.pow(1000, Math.random()));
+        }
+
+        function randHue() {
+            //let h = Math.trunc(Math.random() * 256 * 6);
+            let h = (x * 16 + y) % (256 * 6);
+
+            let r = 0;
+            let g = 0;
+            let b = 0;
+
+            if (h < 256) {
+                r = 255;
+                g = h;
+            } else if (h < 256 * 2) {
+                h -= 256;
+                r = 255 - h;
+                g = 255;
+            } else if (h < 256 * 3) {
+                h -= 256 * 2;
+                g = 255;
+                b = h;
+            } else if (h < 256 * 4) {
+                h -= 256 * 3;
+                g = 255 - h;
+                b = 255;
+            } else if (h < 256 * 5) {
+                h -= 256 * 4;
+                b = 255;
+                r = h;
+            } else {
+                h -= 256 * 5;
+                b = 255 - h;
+                r = 255;
+            }
+
+
+            let s = (r * 65536 + g * 256 + b).toString(16);
+            while (s.length < 6) s = '0' + s;
+            return '#' + s;
+        }
+
+        function repaint() {
+            let canvas = document.getElementById('canvas');
+            let ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#000';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = randHue();
+            for (let i = 0; i < x; i++) {
+                let a1 = i * 2 * Math.PI / x;
+                let a2 = i * y * 2 * Math.PI / x;
+                let x1 = (Math.cos(a1) + 1) * canvas.width / 2;
+                let y1 = (Math.sin(a1) + 1) * canvas.height / 2;
+                let x2 = (Math.cos(a2) + 1) * canvas.width / 2;
+                let y2 = (Math.sin(a2) + 1) * canvas.height / 2;
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        }
+
+        function load() {
+            let canvas = document.createElement('canvas');
+            canvas.id = 'canvas';
+            canvas.width = 800;
+            canvas.height = 800;
+            document.body.appendChild(canvas);
+            let xLabel = document.createElement('label');
+            xLabel.innerText = 'x:';
+            document.body.appendChild(xLabel);
+            let xRange = document.createElement('input');
+            xRange.type = 'number';
+            document.body.appendChild(xRange);
+            xRange.min = 1
+            xRange.value = x;
+            xRange.oninput = () => {
+                x = parseInt(xRange.value);
+                repaint();
+            }
+            let yLabel = document.createElement('label');
+            yLabel.innerText = 'y:';
+            document.body.appendChild(yLabel);
+            let yRange = document.createElement('input');
+            yRange.type = 'number';
+            document.body.appendChild(yRange);
+            yRange.min = 1
+            yRange.value = y;
+            yRange.oninput = () => {
+                y = parseInt(yRange.value);
+                repaint();
+            }
+            repaint();
+        }
+    </script>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            font-family: Courier New, Courier, monospace;
+        }
+        body {
+            background-color: #000;
+        }
+        body * {
+            display: block;
+        }
+    </style>
+</head>
+<body onload="load()"></body>
+</html>
