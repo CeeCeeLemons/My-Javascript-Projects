@@ -1,0 +1,244 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>You Suck at Connect Four</title>
+    <script>
+        function Board(turn = 1, depth = 0) {
+            this.turn = turn;
+            this.depth = depth;
+            for (let r = 0; r < 6; r++) {
+                this[r] = [];
+                for (let c = 0; c < 7; c++) {
+                    this[r][c] = 0;
+                }
+            }
+
+            this.__proto__.copy = function () {
+                let ret = new Board(this.turn, this.depth + 1);
+                for (let r = 0; r < 6; r++) {
+                    for (let c = 0; c < 7; c++) {
+                        ret[r][c] = this[r][c];
+                    }
+                }
+                return ret;
+            }
+
+            this.__proto__.miniMax = function (maxDepth) {
+                let bestVal = -this.turn;
+                let bestMoves = [];
+                for (let c of this.getNextMoves()) {
+                    let child = this.copy();
+                    child.makeMove(c);
+                    let childVal = child.getVal(maxDepth);
+                    if (this.turn * (childVal - bestVal) > 0) {
+                        bestVal = childVal;
+                        bestMoves = [c]
+                    } else if (childVal === bestVal) {
+                        bestMoves.push(c);
+                    }
+                }
+
+                if (bestMoves.length > 0) {
+                    let randMove = Math.trunc(Math.random() * bestMoves.length);
+                    this.makeMove(bestMoves[randMove], true);
+                }
+            }
+
+            this.__proto__.getVal = function (maxDepth) {
+                let state = this.getState();
+                let moves = this.getNextMoves();
+                if (state === 0 && moves.length > 0 && this.depth < maxDepth) {
+                    let bestVal = -this.turn;
+                    for (let c of moves) {
+                        let child = this.copy();
+                        child.makeMove(c);
+                        let childVal = child.getVal(maxDepth);
+                        if (this.turn * (childVal - bestVal) > 0) {
+                            bestVal = childVal;
+                        }
+                    }
+                    return bestVal;
+                }
+                return state;
+            }
+
+            this.__proto__.getNextMoves = function () {
+                let ret = [];
+                for (let c = 0; c < 7; c++) {
+                    let child = this.copy();
+                    if (child.makeMove(c)) {
+                        ret.push(c);
+                    }
+                }
+                return ret;
+            }
+
+            this.__proto__.makeMove = function (c) {
+                let r = 0;
+                while (r < 6) {
+                    if (this[r][c] !== 0) {
+                        break;
+                    } else {
+                        r++;
+                    }
+                }
+                if (r > 0) {
+                    this[r - 1][c] = this.turn;
+                    this.turn = -this.turn;
+                    return true;
+                } else {
+                    return false;
+                }
+            }
+
+            this.__proto__.getState = function (print = false) {
+                for (let r = 0; r < 6; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        if (this[r][c] !== 0 && this[r][c] === this[r][c + 1] && this[r][c] === this[r][c + 2] && this[r][c] === this[r][c + 3]) {
+                            if (print) {
+                                highlight(r, c, r, c + 3);
+                            }
+                            return this[r][c];
+                        }
+                    }
+                }
+
+                for (let c = 0; c < 7; c++) {
+                    for (let r = 0; r < 3; r++) {
+                        if (this[r][c] !== 0 && this[r][c] === this[r + 1][c] && this[r][c] === this[r + 2][c] && this[r][c] === this[r + 3][c]) {
+                            if (print) {
+                                highlight(r, c, r + 3, c);
+                            }
+                            return this[r][c];
+                        }
+                    }
+                }
+
+                for (let r = 0; r < 3; r++) {
+                    for (let c = 0; c < 4; c++) {
+                        if (this[r][c] !== 0 && this[r][c] === this[r + 1][c + 1] && this[r][c] === this[r + 2][c + 2] && this[r][c] === this[r + 3][c + 3]) {
+                            if (print) {
+                                highlight(r, c, r + 3, c + 3);
+                            }
+                            return this[r][c];
+                        }
+                        if (this[r][c + 3] !== 0 && this[r][c + 3] === this[r + 1][c + 2] && this[r][c + 3] === this[r + 2][c + 1] && this[r][c + 3] === this[r + 3][c]) {
+                            if (print) {
+                                highlight(r, c + 3, r + 3, c);
+                            }
+                            return this[r][c + 3];
+                        }
+                    }
+                }
+
+                return 0;
+            }
+        }
+
+        let spaces = [];
+
+        let currentBoard = new Board();
+
+        let tookTurn = false;
+
+        function loadGraphic() {
+            let board = document.createElement('div');
+            board.id = 'board';
+            document.body.appendChild(board);
+
+            for (let c = 0; c < 7; c++) {
+                let col = document.createElement('div');
+                board.appendChild(col);
+                spaces.push([]);
+                for (let r = 0; r < 6; r++) {
+                    let row = document.createElement('div');
+                    spaces[c].push(row);
+                    col.appendChild(row);
+                }
+                col.onclick = () => {
+                    if (currentBoard.getState() === 0) {
+                        currentBoard.makeMove(c, true);
+                        paintBoard();
+                        tookTurn = true;
+                    }
+                }
+            }
+
+            paintBoard();
+        }
+
+        function paintBoard() {
+            for (let r = 0; r < 6; r++) {
+                for (let c = 0; c < 7; c++) {
+                    spaces[c][r].classList.remove(...spaces[c][r].classList);
+                    if (currentBoard[r][c] === 1) {
+                        spaces[c][r].classList.add('red');
+                    } else if (currentBoard[r][c] === -1) {
+                        spaces[c][r].classList.add('black');
+                    }
+                }
+            }
+            currentBoard.getState(true);
+        }
+
+        function highlight(r1, c1, r2, c2) {
+            for (let i = 0; i < 4; i++) {
+                let r = (r2 - r1) * i / 3 + r1;
+                let c = (c2 - c1) * i / 3 + c1;
+                spaces[c][r].classList.add('highlight');
+            }
+        }
+
+        function loop() {
+            if (currentBoard.turn === -1 && !tookTurn) {
+                currentBoard.miniMax(7);
+                paintBoard();
+                tookTurn = true;
+            }
+            tookTurn = false;
+            if (currentBoard.getState() === 0) window.requestAnimationFrame(loop);
+        }
+
+        function load() {
+            loadGraphic();
+            loop();
+        }
+    </script>
+    <style type="text/css">
+        * {
+            margin: 0;
+            padding: 0;
+            font-family: 'Courier New';
+        }
+        #board {
+        }
+        #board > * {
+            display: inline-block;
+            background-color: blue;
+        }
+        #board > *:hover {
+            filter: brightness(80%);
+        }
+        #board > * > * {
+            font-size: 96px;
+            display: block;
+            width: 1em;
+            height: 1em;
+            border-radius: .5em;
+            border: 1px solid blue;
+            background-color: white;
+        }
+        #board > * > *.red {
+            background-color: red;
+        }
+        #board > * > *.black {
+            background-color: black;
+        }
+        #board > * > *.highlight {
+            box-shadow: inset 0 0 0 .1em yellow;
+        }
+    </style>
+</head>
+<body onload="load()">
+</body>
+</html>
