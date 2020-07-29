@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>LinAlg</title>
+    <script src="Matrix.js"></script>
+    <script src="Network.js"></script>
+    <script>
+
+        let thue_morse = function (n) {
+            if (n === 0) {
+                return 0;
+            } else if (n % 2 === 0) {
+                return thue_morse(n / 2);
+            } else {
+                return 1 - thue_morse((n - 1) / 2);
+            }
+        }
+
+        function minVal(list) {
+            let min = list[0];
+            for (i of list) {
+                if (i < min) {
+                    min = i;
+                }
+            }
+            return min;
+        }
+
+        function maxVal(list) {
+            let max = list[0];
+            for (i of list) {
+                if (max < i) {
+                    max = i;
+                }
+            }
+            return max;
+        }
+
+        let brain = new Network([2, 2, 1], 1);
+
+        let inputs = [
+            [0, 0],
+            [0, 1],
+            [1, 0],
+            [1, 1]
+        ];
+        let outputs = [
+            [0],
+            [1],
+            [1],
+            [0],
+        ];
+
+        /*let brain = new Network([3, 8, 2]);
+        
+        let inputs = [
+            [0, 0, 0],
+            [0, 0, 1],
+            [0, 1, 0],
+            [0, 1, 1],
+            [1, 0, 0],
+            [1, 0, 1],
+            [1, 1, 0],
+            [1, 1, 1]
+        ];
+        let outputs = [
+            [0, 0],
+            [0, 1],
+            [0, 1],
+            [1, 0],
+            [0, 1],
+            [1, 0],
+            [1, 0],
+            [1, 1]
+        ];*/
+
+        let trainingDataIndex = 0;
+
+        let costs = [];
+        let d1costs = [];
+        let d2costs = [];
+
+        function map(x, xMin, xMax, yMin, yMax) {
+            return (x - xMin) * (yMax - yMin) / (xMax - xMin) + yMin;
+        }
+
+        function drawGraph() {
+            let canvas = document.getElementById("graph");
+            let ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            /*ctx.strokeStyle = '#000000'
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();*/
+            
+            let minCost = minVal(costs);
+            let maxCost = maxVal(costs);
+            /*let mind1Cost = minVal(d1costs);
+            let maxd1Cost = maxVal(d1costs);
+            let mind2Cost = minVal(d2costs);
+            let maxd2Cost = maxVal(d2costs);*/
+
+            ctx.strokeStyle = '#ff7700'
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let i in costs) {
+                let cost = costs[i];
+                let x = map(i, 0, costs.length - 1, 0, canvas.width);
+                let y = map(cost, minCost, maxCost, canvas.height, 0);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            /*ctx.strokeStyle = '#00ff00'
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let i in d1costs) {
+                let d1 = d1costs[i];
+                let x = map(i, 0, d1costs.length - 1, 0, canvas.width);
+                let y = map(d1, mind1Cost, maxd1Cost, canvas.height, 0);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();
+
+            ctx.strokeStyle = '#0077ff'
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            for (let i in d2costs) {
+                let d2 = d2costs[i];
+                let x = map(i, 0, d2costs.length - 1, 0, canvas.width);
+                let y = map(d2, mind2Cost, maxd2Cost, canvas.height, 0);
+                ctx.lineTo(x, y);
+            }
+            ctx.stroke();*/
+        }
+
+        function drawCanvas() {
+            brain.setInputs(inputs[trainingDataIndex]);
+            brain.process();
+
+            let canvas = document.getElementById("canvas");
+            let ctx = canvas.getContext('2d');
+
+            ctx.fillStyle = '#ffffff';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            let widthPadding = 0;
+            let heightPadding = 0;
+
+            for (let i of Range(brain.weights.length)) {
+                let x1 = (i + .5) * (canvas.width - widthPadding * 2) / brain.neurons.length  + widthPadding;
+                let x2 = (i + 1.5) * (canvas.width - widthPadding * 2) / brain.neurons.length  + widthPadding;
+                for (let r of Range(brain.weights[i].rows)) {
+                    let y2 = (r + .5) * (canvas.height - heightPadding * 2) / brain.weights[i].rows + heightPadding;
+                    for (let c of Range(brain.weights[i].cols)) {
+                        let y1 = (c + .5) * (canvas.height - heightPadding * 2) / brain.weights[i].cols + heightPadding;
+                        ctx.strokeStyle = getRB(brain.weights[i][r][c]);
+                        ctx.beginPath();
+                        ctx.moveTo(x1, y1);
+                        ctx.lineTo(x2, y2);
+                        ctx.stroke();
+                    }
+                }
+            }
+
+            for (let i of Range(brain.biases.length)) {
+                let x1 = (i + .5) * (canvas.width - widthPadding * 2) / brain.neurons.length  + widthPadding;
+                let x2 = (i + 1.5) * (canvas.width - widthPadding * 2) / brain.neurons.length  + widthPadding;
+                for (let r of Range(brain.biases[i].rows)) {
+                    let y2 = (r + .5) * (canvas.height - heightPadding * 2) / brain.biases[i].rows + heightPadding;
+                    ctx.fillStyle = getRB(brain.biases[i][r][0]);
+                    ctx.beginPath();
+                    ctx.arc(x2, y2, 20, 0, 2 * Math.PI);
+                    ctx.fill();
+                }
+            }
+
+            for (let i of Range(brain.neurons.length)) {
+                let x = (i + .5) * (canvas.width - widthPadding * 2) / brain.neurons.length  + widthPadding;
+                for (let j of Range(brain.neurons[i].rows)) {
+                    let y = (j + .5) * (canvas.height - heightPadding * 2) / brain.neurons[i].rows + heightPadding;
+                    ctx.strokeStyle = '#000000';
+                    ctx.fillStyle = getShade(brain.neurons[i][j][0]);
+                    ctx.beginPath();
+                    ctx.arc(x, y, 10, 0, 2 * Math.PI);
+                    ctx.stroke();
+                    ctx.fill();
+                }
+            }
+        }
+
+        function logistic(n) {
+            return 1 / (1 + Math.exp(-n));
+        }
+
+        function getRB(n) {
+            let h = Math.trunc(logistic(n * 10) * 256 * 2);
+            let r = 0;
+            let b = 0;
+            if (h < 256) {
+                r = 255 - h;
+            } else if (h < 256 * 2) {
+                h -= 256;
+                b = h;
+            } else {
+                b = 255;
+            }
+            let s = (r * 256 * 256 + b).toString(16);
+            while (s.length < 6) {
+                s = '0' + s;
+            }
+            return '#' + s;
+
+        }
+
+        function getShade(n) {
+            let s = Math.trunc(255 * n).toString(16);
+            while (s.length < 2) {
+                s = '0' + s;
+            }
+            return '#' + s + s + s;
+
+        }
+
+        function loop() {
+            brain.train();
+            
+            let prevCost = costs[costs.length - 1];
+            let prevd1Cost = d1costs[d1costs.length - 1];
+            let newCost = brain.getAvCost();
+            let newd1Cost = newCost - prevCost;
+            let newd2Cost = newd1Cost - prevd1Cost;
+            costs.push(newCost);
+            if(costs.length > 1) d1costs.push(newd1Cost);
+            if(d1costs.length > 1) d2costs.push(newd2Cost);
+            
+            let con = document.getElementById('con');
+            con.innerText = "Average cost: " + newCost;
+
+            costs = costs.slice(Math.max(0, costs.length - 1000), costs.length);
+            d1costs = d1costs.slice(Math.max(0, d1costs.length - 1000), d1costs.length);
+            d2costs = d2costs.slice(Math.max(0, d2costs.length - 1000), d2costs.length);
+
+            drawCanvas();
+            drawGraph();
+
+            window.requestAnimationFrame(loop);
+        }
+
+        function load() {
+
+            /*for (let i of Range(Math.pow(2, numIns))) {
+                let temp = [];
+                for (let j of Range(numIns)) {
+                    temp.push(Math.trunc(i / Math.pow(2, j)) % 2);
+                }
+                inputs.push(temp);
+                outputs.push([thue_morse(i)]);
+            }*/
+
+            brain.setTrainingData(inputs, outputs);
+
+            let range = document.getElementById('range');
+            range.max = brain.inputData.length - 1;
+            range.value = trainingDataIndex;
+
+            loop();
+        }
+
+        function slider() {
+            let range = document.getElementById('range');
+            trainingDataIndex = range.value;
+        }
+
+    </script>
+    <style type="text/css">
+        * {
+            font-size: 48px;
+            float: left;
+            clear: both;
+        }
+        canvas {
+            outline: 1px solid black;
+        }
+    </style>
+</head>
+<body onload="load()">
+    <div id="con"></div>
+    <canvas id="canvas" width="800" height="800"></canvas>
+    <input type="range" min="0" id="range" oninput="slider()" />
+    <canvas id="graph" width="800" height="400"></canvas>
+</body>
+</html>
